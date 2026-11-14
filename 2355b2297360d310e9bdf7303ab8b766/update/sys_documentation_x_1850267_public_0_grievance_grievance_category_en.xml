@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_documentation element="grievance_category" label="Grievance Category" language="en" table="x_1850267_public_0_grievance">
+        <sys_documentation action="INSERT_OR_UPDATE">
+            <element>grievance_category</element>
+            <help/>
+            <hint/>
+            <label>Grievance Category</label>
+            <language>en</language>
+            <name>x_1850267_public_0_grievance</name>
+            <plural>Grievance Categories</plural>
+            <sys_class_name>sys_documentation</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:38</sys_created_on>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>Grievance Category</sys_name>
+            <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+            <sys_update_name>sys_documentation_x_1850267_public_0_grievance_grievance_category_en</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:38</sys_updated_on>
+            <url/>
+            <url_target/>
+        </sys_documentation>
+    </sys_documentation>
+</record_update>
