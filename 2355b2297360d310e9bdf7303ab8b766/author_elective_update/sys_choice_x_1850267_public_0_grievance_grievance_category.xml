@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_choice action="INSERT_OR_UPDATE" field="grievance_category" table="x_1850267_public_0_grievance" version="3">
+        <sys_choice_set action="INSERT_OR_UPDATE">
+            <element>grievance_category</element>
+            <name>x_1850267_public_0_grievance</name>
+            <sys_class_name>sys_choice_set</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>grievance_category</sys_name>
+            <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+            <sys_update_name>sys_choice_x_1850267_public_0_grievance_grievance_category</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+        </sys_choice_set>
+        <sys_choice action="INSERT_OR_UPDATE">
+            <dependent_value/>
+            <element>grievance_category</element>
+            <hint/>
+            <inactive>false</inactive>
+            <label>Water</label>
+            <language>en</language>
+            <name>x_1850267_public_0_grievance</name>
+            <sequence>100</sequence>
+            <synonyms/>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
+            <sys_domain>global</sys_domain>
+            <sys_domain_path>/</sys_domain_path>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <value>water</value>
+        </sys_choice>
+        <sys_choice action="INSERT_OR_UPDATE">
+            <dependent_value/>
+            <element>grievance_category</element>
+            <hint/>
+            <inactive>false</inactive>
+            <label>Electricity</label>
+            <language>en</language>
+            <name>x_1850267_public_0_grievance</name>
+            <sequence>200</sequence>
+            <synonyms/>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
+            <sys_domain>global</sys_domain>
+            <sys_domain_path>/</sys_domain_path>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <value>electricity</value>
+        </sys_choice>
+        <sys_choice action="INSERT_OR_UPDATE">
+            <dependent_value/>
+            <element>grievance_category</element>
+            <hint/>
+            <inactive>false</inactive>
+            <label>Sanitation</label>
+            <language>en</language>
+            <name>x_1850267_public_0_grievance</name>
+            <sequence>300</sequence>
+            <synonyms/>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
+            <sys_domain>global</sys_domain>
+            <sys_domain_path>/</sys_domain_path>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <value>sanitation</value>
+        </sys_choice>
+        <sys_choice action="INSERT_OR_UPDATE">
+            <dependent_value/>
+            <element>grievance_category</element>
+            <hint/>
+            <inactive>false</inactive>
+            <label>Roads</label>
+            <language>en</language>
+            <name>x_1850267_public_0_grievance</name>
+            <sequence>400</sequence>
+            <synonyms/>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
+            <sys_domain>global</sys_domain>
+            <sys_domain_path>/</sys_domain_path>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <value>roads</value>
+        </sys_choice>
+    </sys_choice>
+</record_update>

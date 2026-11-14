@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element attributes="enforce_dot_walk_cross_scope_access=true" audit="true" db_object_id="c88133b5e41d46598a7dcc3c25e408a3" extends="task" label="Grievance Ticket" name="x_1850267_public_0_grievance" type="collection">
+        <element label="Cryptographic Hash" max_length="128" name="cryptographic_hash" read_only="true" read_only_option="instance_configured" type="string"/>
+        <element label="Citizen Phone" max_length="20" name="citizen_phone" type="string"/>
+        <element choice="1" label="Grievance Category" name="grievance_category" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Water" sequence="100" value="water"/>
+                <element inactive_on_update="false" label="Sanitation" sequence="300" value="sanitation"/>
+                <element inactive_on_update="false" label="Roads" sequence="400" value="roads"/>
+                <element inactive_on_update="false" label="Electricity" sequence="200" value="electricity"/>
+            </choice>
+        </element>
+        <element label="Citizen Name" max_length="100" name="citizen_name" type="string"/>
+    </element>
+</database>
