@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_1850267_public_0.GrievanceHashEngine</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>Generates SHA-256 digests for grievance ticket payloads using the GlideDigest API.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>GrievanceHashEngine</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var GrievanceHashEngine = Class.create()
+
+GrievanceHashEngine.prototype = {
+    initialize: function () {},
+
+    /**
+     * Generates a SHA-256 hash of the supplied payload.
+     *
+     * @param {string} payload - the text to hash
+     * @return {string} lowercase hex-encoded SHA-256 digest, or an empty
+     *                  string when the payload is empty
+     */
+    generateHash: function (payload) {
+        if (payload === null || payload === undefined) {
+            return ''
+        }
+
+        var text = '' + payload
+
+        if (!text) {
+            return ''
+        }
+
+        return new GlideDigest().getSHA256Hex(text)
+    },
+
+    type: 'GrievanceHashEngine',
+}
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-15 06:55:28</sys_created_on>
+        <sys_id>7aa60b4dd2b94fffb382fb0bad95d232</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>GrievanceHashEngine</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sys_script_include_7aa60b4dd2b94fffb382fb0bad95d232</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-15 06:55:28</sys_updated_on>
+    </sys_script_include>
+</record_update>
