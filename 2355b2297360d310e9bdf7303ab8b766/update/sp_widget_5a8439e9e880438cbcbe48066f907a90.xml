@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function () {
+    var c = this;
+
+    c.refreshing = false;
+
+    // Re-runs the server script and re-renders the metrics in place
+    c.refresh = function () {
+        c.refreshing = true;
+        c.server.update().then(function () {
+            c.refreshing = false;
+        });
+    };
+};
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.grievance-sla-dashboard {
+    .sla-metric {
+        padding: 18px 16px;
+        margin-bottom: 12px;
+        border: 1px solid $border-color;
+        border-left-width: 5px;
+        border-radius: $border-radius-base;
+        background-color: $panel-bg;
+        text-align: center;
+    }
+
+    .sla-metric-label {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $text-muted;
+    }
+
+    .sla-metric-value {
+        margin: 0;
+        font-size: 40px;
+        line-height: 1.1;
+        font-weight: 700;
+    }
+
+    .sla-metric-help {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: $text-muted;
+    }
+
+    /* Open grievances - neutral informational accent */
+    .sla-metric-open {
+        border-left-color: $brand-info;
+
+        .sla-metric-value {
+            color: $text-color;
+        }
+    }
+
+    /* Breach severity mapped from the actual value, not a flat style */
+    .sla-metric-ok {
+        border-left-color: $brand-success;
+
+        .sla-metric-value {
+            color: darken($brand-success, 10%);
+        }
+    }
+
+    .sla-metric-warning {
+        border-left-color: $brand-warning;
+
+        .sla-metric-value {
+            color: darken($brand-warning, 12%);
+        }
+    }
+
+    .sla-metric-critical {
+        border-left-color: $brand-danger;
+
+        .sla-metric-value {
+            color: darken($brand-danger, 8%);
+        }
+    }
+
+    .sla-metric-summary {
+        padding: 8px 12px;
+        border-top: 1px solid $border-color;
+        font-size: 13px;
+    }
+
+    .sla-metric-empty {
+        padding: 12px 0;
+    }
+
+    .sla-metric-asof {
+        margin: 8px 0 0;
+        font-size: 11px;
+        text-align: right;
+    }
+}
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description>Displays total open grievances and the number of open grievances past their target resolution date.</description>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>x_1850267_public_0_grievance_sla_dashboa</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+}]]></link>
+        <name>Grievance SLA Dashboard</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function () {
+    // Initialize every data.* property so the template never binds to undefined
+    data.openCount = 0;
+    data.breachCount = 0;
+    data.onTrackCount = 0;
+    data.asOf = '';
+    data.tableLabel = 'Grievance';
+
+    var TABLE = 'x_1850267_public_0_grievance';
+
+    // Scoped-app-safe "now": new GlideDateTime() is the scoped equivalent of
+    // gs.nowDateTime(), which is a global-scope-only API.
+    var now = new GlideDateTime();
+
+    // 1) Total open grievances (active = true)
+    var openAgg = new GlideAggregate(TABLE);
+    openAgg.addQuery('active', true);
+    openAgg.addAggregate('COUNT');
+    openAgg.query();
+    if (openAgg.next()) {
+        data.openCount = parseInt(openAgg.getAggregate('COUNT'), 10) || 0;
+    }
+
+    // 2) Active SLA breaches (active = true AND target_resolution < now)
+    //    Records with an empty target_resolution are excluded - an unset target
+    //    cannot be breached.
+    var breachAgg = new GlideAggregate(TABLE);
+    breachAgg.addQuery('active', true);
+    breachAgg.addNotNullQuery('target_resolution');
+    breachAgg.addQuery('target_resolution', '<', now);
+    breachAgg.addAggregate('COUNT');
+    breachAgg.query();
+    if (breachAgg.next()) {
+        data.breachCount = parseInt(breachAgg.getAggregate('COUNT'), 10) || 0;
+    }
+
+    // Derived: open grievances still within their resolution target
+    data.onTrackCount = Math.max(0, data.openCount - data.breachCount);
+
+    // Breach rate as a whole percentage of open grievances
+    data.breachRate = data.openCount > 0
+        ? Math.round((data.breachCount / data.openCount) * 100)
+        : 0;
+
+    // Severity class driven by the actual breach count, not hardcoded flat
+    if (data.breachCount === 0) {
+        data.breachClass = 'sla-metric-ok';
+    } else if (data.breachRate >= 25) {
+        data.breachClass = 'sla-metric-critical';
+    } else {
+        data.breachClass = 'sla-metric-warning';
+    }
+
+    data.asOf = now.getDisplayValue();
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-15 10:12:52</sys_created_on>
+        <sys_id>5a8439e9e880438cbcbe48066f907a90</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Grievance SLA Dashboard</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sp_widget_5a8439e9e880438cbcbe48066f907a90</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-15 10:12:52</sys_updated_on>
+        <template><![CDATA[<div class="panel panel-default grievance-sla-dashboard">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      Grievance SLA Dashboard
+      <button type="button" class="btn btn-default btn-xs pull-right"
+              ng-click="c.refresh()" ng-disabled="c.refreshing"
+              aria-label="Refresh grievance SLA metrics">
+        <span ng-if="c.refreshing"><i class="fa fa-spinner fa-spin"></i> Refreshing</span>
+        <span ng-if="!c.refreshing"><i class="fa fa-refresh"></i> Refresh</span>
+      </button>
+    </h3>
+  </div>
+
+  <div class="panel-body">
+    <div class="row">
+
+      <!-- Metric 1: total open grievances (active = true) -->
+      <div class="col-xs-12 col-sm-6">
+        <div class="sla-metric sla-metric-open">
+          <p class="sla-metric-label">Total Open Grievances</p>
+          <p class="sla-metric-value" ng-bind="c.data.openCount"></p>
+          <p class="sla-metric-help">Records where <strong>Active</strong> is true</p>
+        </div>
+      </div>
+
+      <!-- Metric 2: active SLA breaches (active = true AND target_resolution in the past) -->
+      <div class="col-xs-12 col-sm-6">
+        <div class="sla-metric" ng-class="c.data.breachClass">
+          <p class="sla-metric-label">Active SLA Breaches</p>
+          <p class="sla-metric-value" ng-bind="c.data.breachCount"></p>
+          <p class="sla-metric-help">
+            Open past <strong>Target Resolution</strong>
+            <span ng-if="c.data.openCount > 0">&middot; {{c.data.breachRate}}% of open</span>
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sla-metric-summary" ng-if="c.data.openCount > 0">
+      <i class="fa fa-check-circle text-success" aria-hidden="true"></i>
+      <span ng-bind="c.data.onTrackCount"></span> open grievance(s) still within target.
+    </div>
+
+    <div class="text-center text-muted sla-metric-empty" ng-if="c.data.openCount === 0">
+      <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
+      <p>No open grievances found.</p>
+    </div>
+
+    <p class="sla-metric-asof text-muted">As of {{c.data.asOf}}</p>
+  </div>
+</div>
+]]></template>
+    </sp_widget>
+</record_update>
