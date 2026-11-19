@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sysauto_script">
+    <sysauto_script action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <advanced>true</advanced>
+        <business_calendar/>
+        <condition/>
+        <conditional>false</conditional>
+        <entered_run_end/>
+        <entered_run_start/>
+        <entered_time/>
+        <max_drift/>
+        <name>Monitor Grievance SLA Breaches</name>
+        <offset/>
+        <offset_type>0</offset_type>
+        <repeat_every/>
+        <run_as/>
+        <run_as_tz/>
+        <run_dayofmonth>1</run_dayofmonth>
+        <run_dayofweek>1</run_dayofweek>
+        <run_daysofweek/>
+        <run_end/>
+        <run_month/>
+        <run_period>1970-01-01 00:15:00</run_period>
+        <run_start/>
+        <run_time>1970-01-01 00:00:00</run_time>
+        <run_type>periodically</run_type>
+        <run_weekinmonth/>
+        <script><![CDATA[/**
+ * Monitor Grievance SLA Breaches
+ *
+ * Runs every 15 minutes. Finds active grievance tickets whose Target
+ * Resolution deadline has passed and that have not already been escalated,
+ * marks them Overdue, stamps a work note, and fires
+ * x_1850267_public_0.sla.breached so the escalation notification goes out to
+ * the assigned agent and every grievance manager.
+ *
+ * Uses new GlideDateTime() (scoped-safe) rather than gs.nowDateTime().
+ */
+;(function () {
+    var GRIEVANCE_TABLE = 'x_1850267_public_0_grievance'
+    var MANAGER_ROLE = 'x_1850267_public_0.grievance_manager'
+    var SLA_BREACHED_EVENT = 'x_1850267_public_0.sla.breached'
+    var ESCALATION_OVERDUE = 3
+
+    /**
+     * Comma-separated sys_ids of active users holding the grievance manager
+     * role. Passed as event parm 1 so the notification can resolve them as
+     * recipients.
+     */
+    function getManagerSysIds() {
+        var ids = []
+        var roleGr = new GlideRecord('sys_user_has_role')
+        roleGr.addQuery('role.name', MANAGER_ROLE)
+        roleGr.addQuery('user.active', true)
+        roleGr.query()
+
+        while (roleGr.next()) {
+            var userId = roleGr.getValue('user')
+            if (userId && ids.indexOf(userId) === -1) {
+                ids.push(userId)
+            }
+        }
+
+        return ids.join(',')
+    }
+
+    try {
+        var now = new GlideDateTime()
+        var managerSysIds = getManagerSysIds()
+
+        if (!managerSysIds) {
+            gs.warn(
+                '[Grievance SLA Monitor] No active users hold ' +
+                    MANAGER_ROLE +
+                    '. Breach events will still fire, but only the assigned agent will be emailed.',
+            )
+        }
+
+        var gr = new GlideRecord(GRIEVANCE_TABLE)
+        gr.addQuery('active', true)
+        gr.addNotNullQuery('target_resolution')
+        gr.addQuery('target_resolution', '<', now.getValue())
+        gr.addQuery('escalation', '<', ESCALATION_OVERDUE)
+        gr.query()
+
+        var escalated = 0
+
+        while (gr.next()) {
+            var deadline = gr.getDisplayValue('target_resolution')
+            var ticketNumber = gr.getValue('number')
+
+            gr.setValue('escalation', ESCALATION_OVERDUE)
+            gr.work_notes =
+                'SLA BREACH: This grievance breached its Target Resolution deadline of ' +
+                deadline +
+                ' and has been escalated to Overdue. Grievance managers have been notified.'
+
+            if (gr.update()) {
+                gs.eventQueue(SLA_BREACHED_EVENT, gr, managerSysIds, deadline)
+                escalated++
+            } else {
+                gs.error('[Grievance SLA Monitor] Failed to update breached grievance ' + ticketNumber)
+            }
+        }
+
+        gs.info(
+            '[Grievance SLA Monitor] Run at ' +
+                now.getDisplayValue() +
+                ' escalated ' +
+                escalated +
+                ' breached grievance ticket(s).',
+        )
+    } catch (e) {
+        gs.error('[Grievance SLA Monitor] Aborted with error: ' + e.message)
+    }
+})()
+]]></script>
+        <sys_class_name>sysauto_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 05:33:39</sys_created_on>
+        <sys_id>68b0fac1f2834f5eb53df0fcecc29cab</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Monitor Grievance SLA Breaches</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sysauto_script_68b0fac1f2834f5eb53df0fcecc29cab</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 05:33:39</sys_updated_on>
+        <time_zone/>
+        <upgrade_safe>false</upgrade_safe>
+    </sysauto_script>
+</record_update>
