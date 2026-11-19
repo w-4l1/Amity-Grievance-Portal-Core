@@ -3,7 +3,7 @@
         <category>custom</category>
         <css/>
         <draft>false</draft>
-        <dynamic_title_structure>Agent Workspace - ${portal.title}</dynamic_title_structure>
+        <dynamic_title_structure>Agent Workspace</dynamic_title_structure>
         <human_readable_url_structure/>
         <id>agent_workspace</id>
         <internal>false</internal>

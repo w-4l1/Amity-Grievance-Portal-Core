@@ -1,0 +1,617 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function ($rootScope, $window) {
+    var c = this;
+
+    c.saving = false;
+    c.filtering = false;
+    c.serverErrors = [];
+
+    c.modal = {
+        open: false,
+        row: null,
+        state: '',
+        closeNotes: ''
+    };
+
+    c.isActiveFilter = function (value) {
+        return (c.data.categoryFilter || '') === (value || '');
+    };
+
+    // Category filter is applied by the server query, not only in the DOM
+    c.setFilter = function (value) {
+        if (c.filtering || c.isActiveFilter(value)) {
+            return;
+        }
+        c.filtering = true;
+        c.data.action = 'filter_queue';
+        c.data.categoryFilter = value || '';
+
+        c.server.update().then(function () {
+            c.filtering = false;
+            c.data.action = null;
+        });
+    };
+
+    // ---------------- Inline manage / resolve modal ----------------
+    c.openModal = function (row) {
+        c.serverErrors = [];
+        c.modal = {
+            open: true,
+            row: row,
+            state: row.stateValue,
+            closeNotes: row.close_notes || ''
+        };
+    };
+
+    c.closeModal = function () {
+        c.modal.open = false;
+        c.modal.row = null;
+    };
+
+    c.isModalValid = function () {
+        if (!c.modal.state) {
+            return false;
+        }
+        // Resolution notes are mandatory when closing the grievance as complete
+        if (c.modal.state === '3' && !(c.modal.closeNotes || '').trim()) {
+            return false;
+        }
+        return true;
+    };
+
+    c.saveModal = function () {
+        if (!c.isModalValid()) {
+            return;
+        }
+
+        c.saving = true;
+        c.serverErrors = [];
+
+        // Assign onto c.data BEFORE c.server.update()
+        c.data.action = 'save_grievance';
+        c.data.recordSysId = c.modal.row.sys_id;
+        c.data.recordState = c.modal.state;
+        c.data.recordCloseNotes = c.modal.closeNotes;
+
+        c.server.update().then(function () {
+            c.saving = false;
+            c.data.action = null;
+
+            var result = c.data.saveResult;
+            if (result && result.success) {
+                // c.data.rows was rebuilt by the server script, so the queue is
+                // already refreshed in place.
+                c.closeModal();
+
+                // Broadcast for any sibling widget that chooses to listen.
+                // The installed Grievance SLA Dashboard does NOT subscribe to this,
+                // so c.data.kpiStale drives a visible reload prompt instead of
+                // pretending the KPI tiles refreshed.
+                $rootScope.$broadcast('x_1850267_public_0.grievance.updated', {
+                    number: result.number,
+                    closed: !!result.closed
+                });
+                $rootScope.$broadcast('sp.widget.refresh');
+            } else if (result && result.errors) {
+                c.serverErrors = result.errors;
+            } else {
+                c.serverErrors = ['The grievance could not be updated. Please try again.'];
+            }
+        });
+    };
+
+    c.dismissKpiPrompt = function () {
+        c.data.kpiStale = false;
+    };
+
+    c.reloadPage = function () {
+        $window.location.reload();
+    };
+};
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.grievance-agent-queue {
+    .panel-title {
+        font-size: $font-size-large;
+        margin: 0;
+    }
+
+    .grievance-error-list {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .grievance-kpi-prompt {
+        .grievance-kpi-reload {
+            margin-left: 8px;
+        }
+    }
+
+    .grievance-filter-bar {
+        margin-bottom: 14px;
+
+        .grievance-filter-status {
+            margin-left: 10px;
+            font-size: $font-size-small;
+        }
+    }
+
+    .grievance-queue-table {
+        font-size: $font-size-small;
+
+        th {
+            white-space: nowrap;
+        }
+
+        .grievance-cell-number {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .label {
+            font-size: $font-size-small;
+            white-space: nowrap;
+        }
+    }
+
+    .grievance-hash-inline {
+        font-family: $font-family-monospace;
+        font-size: $font-size-small;
+        cursor: help;
+        background-color: transparent;
+        color: $text-muted;
+        padding: 0;
+    }
+
+    .grievance-empty {
+        padding: 18px 0;
+    }
+
+    .grievance-asof {
+        margin: 8px 0 0;
+        font-size: $font-size-small;
+        text-align: right;
+    }
+
+    /* ---------- Inline manage / resolve modal ----------
+       Bootstrap 3 hides .modal by default and relies on its JS plugin to set
+       display. This widget drives the modal with ng-if instead, so the extra
+       class raises specificity to show it without using !important. */
+    .modal.grievance-modal {
+        display: block;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        .modal-title {
+            font-size: $font-size-large;
+        }
+
+        .grievance-modal-facts {
+            margin-bottom: 16px;
+
+            dt {
+                font-size: $font-size-small;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: $text-muted;
+            }
+
+            dd {
+                margin-bottom: 10px;
+                word-break: break-word;
+            }
+        }
+
+        .grievance-modal-notes {
+            resize: vertical;
+        }
+    }
+}
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description>Active grievance queue for agents, ordered by target resolution, with category filters, SLA badges and an inline manage/resolve modal.</description>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>x_1850267_public_0_agent_queue</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+}]]></link>
+        <name>Grievance Agent Queue</name>
+        <option_schema/>
+        <public>false</public>
+        <roles>x_1850267_public_0.grievance_agent,x_1850267_public_0.grievance_manager</roles>
+        <script><![CDATA[(function () {
+    var TABLE = 'x_1850267_public_0_grievance';
+
+    var CATEGORY_FILTERS = [
+        { label: 'All', value: '' },
+        { label: 'Water', value: 'water' },
+        { label: 'Electricity', value: 'electricity' },
+        { label: 'Sanitation', value: 'sanitation' },
+        { label: 'Roads', value: 'roads' }
+    ];
+
+    // States an agent may set from the inline manage modal
+    var STATE_CHOICES = [
+        { label: 'Open', value: '1' },
+        { label: 'Work in Progress', value: '2' },
+        { label: 'Closed Complete', value: '3' }
+    ];
+
+    // Distinct Bootstrap 3 label class per state value
+    var STATE_CLASS_MAP = {
+        '1': 'label-info',
+        '2': 'label-warning',
+        '3': 'label-success',
+        '4': 'label-danger',
+        '7': 'label-default',
+        '-5': 'label-default'
+    };
+
+    var CLOSED_COMPLETE = '3';
+    var ESCALATION_OVERDUE = '3';
+    var HASH_PREVIEW_LENGTH = 12;
+
+    // Initialise every data.* property so the template never binds to undefined
+    data.categoryFilters = CATEGORY_FILTERS;
+    data.stateChoices = STATE_CHOICES;
+    data.rows = [];
+    data.categoryFilter = '';
+    data.rowLimit = 50;
+    data.asOf = '';
+    data.saveResult = null;
+    data.kpiStale = false;
+
+    var action = input && input.action ? input.action + '' : '';
+
+    if (action === 'filter_queue') {
+        data.categoryFilter = normaliseCategory(input && input.categoryFilter);
+    } else if (action === 'save_grievance') {
+        data.categoryFilter = normaliseCategory(input && input.categoryFilter);
+        data.saveResult = saveGrievance(input);
+        // Any successful state/active change moves the sibling KPI dashboard numbers
+        data.kpiStale = !!data.saveResult.success;
+    }
+
+    data.rows = loadQueue(data.categoryFilter);
+    data.asOf = new GlideDateTime().getDisplayValue();
+
+    // ------------------------------------------------------------------
+    // Queue
+    // ------------------------------------------------------------------
+    function loadQueue(category) {
+        var rows = [];
+
+        // "now" for SLA comparison - new GlideDateTime() is the scoped-safe
+        // equivalent of gs.nowDateTime().
+        var now = new GlideDateTime();
+
+        var gr = new GlideRecordSecure(TABLE);
+        gr.addQuery('active', true);
+        if (category) {
+            gr.addQuery('grievance_category', category);
+        }
+        // Ascending target resolution: the most urgent / already breached first
+        gr.orderBy('target_resolution');
+        gr.setLimit(50);
+        gr.query();
+
+        while (gr.next()) {
+            var stateValue = gr.getValue('state') + '';
+            var escalationValue = gr.getValue('escalation') + '';
+            var targetValue = gr.getValue('target_resolution') || '';
+            var hash = gr.getValue('cryptographic_hash') || '';
+
+            var overdueByDate = false;
+            if (targetValue) {
+                var target = new GlideDateTime(targetValue);
+                overdueByDate = target.compareTo(now) < 0;
+            }
+
+            var overdue = overdueByDate || escalationValue === ESCALATION_OVERDUE;
+
+            rows.push({
+                sys_id: gr.getUniqueValue() + '',
+                number: gr.getValue('number') || '',
+                citizen_name: gr.getValue('citizen_name') || '',
+                category: gr.getDisplayValue('grievance_category') || '',
+                short_description: gr.getValue('short_description') || '',
+                state: gr.getDisplayValue('state') || '',
+                stateValue: stateValue,
+                stateClass: STATE_CLASS_MAP[stateValue] || 'label-default',
+                target_resolution: gr.getDisplayValue('target_resolution') || '',
+                close_notes: gr.getValue('close_notes') || '',
+                escalation: gr.getDisplayValue('escalation') || '',
+                slaLabel: overdue ? 'OVERDUE' : 'ON TRACK',
+                slaClass: overdue ? 'label-danger' : 'label-success',
+                hash_full: hash,
+                hash_short: hash ? hash.substring(0, HASH_PREVIEW_LENGTH) + '...' : ''
+            });
+        }
+
+        return rows;
+    }
+
+    // ------------------------------------------------------------------
+    // Inline manage / resolve save handler
+    // ------------------------------------------------------------------
+    function saveGrievance(payload) {
+        var sysId = trim(payload.recordSysId);
+        var state = trim(payload.recordState);
+        var closeNotes = trim(payload.recordCloseNotes);
+
+        var errors = [];
+
+        if (!sysId) {
+            errors.push('No grievance was selected.');
+        }
+
+        if (!isValidState(state)) {
+            errors.push('Select a valid state.');
+        }
+
+        if (state === CLOSED_COMPLETE && !closeNotes) {
+            errors.push('Resolution notes are required when closing a grievance as complete.');
+        }
+
+        if (errors.length > 0) {
+            return { success: false, errors: errors };
+        }
+
+        var gr = new GlideRecordSecure(TABLE);
+        gr.addQuery('sys_id', sysId);
+        gr.setLimit(1);
+        gr.query();
+
+        if (!gr.next()) {
+            return {
+                success: false,
+                errors: ['Grievance not found, or you do not have permission to update it.']
+            };
+        }
+
+        gr.setValue('state', state);
+
+        if (closeNotes) {
+            gr.setValue('close_notes', closeNotes.substring(0, 4000));
+        }
+
+        if (state === CLOSED_COMPLETE) {
+            // active -> false is what fires the "Grievance Resolved Notification"
+            // (it triggers on activeCHANGESTOfalse).
+            gr.setValue('active', false);
+        }
+
+        var number = gr.getValue('number') || '';
+
+        if (!gr.update()) {
+            return {
+                success: false,
+                errors: ['The grievance could not be updated. You may not have write access to it.']
+            };
+        }
+
+        return {
+            success: true,
+            number: number,
+            closed: state === CLOSED_COMPLETE
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+    function trim(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return (value + '').trim();
+    }
+
+    function normaliseCategory(value) {
+        var candidate = trim(value);
+        for (var i = 0; i < CATEGORY_FILTERS.length; i++) {
+            if (CATEGORY_FILTERS[i].value === candidate) {
+                return candidate;
+            }
+        }
+        return '';
+    }
+
+    function isValidState(value) {
+        for (var i = 0; i < STATE_CHOICES.length; i++) {
+            if (STATE_CHOICES[i].value === value) {
+                return true;
+            }
+        }
+        return false;
+    }
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 07:39:51</sys_created_on>
+        <sys_id>19478df0a58c4d07baf52e6d9cf4109a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Grievance Agent Queue</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sp_widget_19478df0a58c4d07baf52e6d9cf4109a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 07:39:51</sys_updated_on>
+        <template><![CDATA[<div class="grievance-agent-queue">
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h2 class="panel-title">Grievance Agent Queue</h2>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- KPI staleness prompt: the sibling SLA dashboard does not subscribe to
+           our broadcast, so say so plainly instead of leaving stale numbers. -->
+      <div class="alert alert-info grievance-kpi-prompt" ng-if="c.data.kpiStale">
+        <button type="button" class="close" ng-click="c.dismissKpiPrompt()" aria-label="Dismiss">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <strong>Counts updated</strong> &mdash; the queue below is current. Reload the page to refresh the SLA KPI tiles.
+        <button type="button" class="btn btn-default btn-xs grievance-kpi-reload" ng-click="c.reloadPage()">
+          <i class="fa fa-refresh" aria-hidden="true"></i> Reload for KPI refresh
+        </button>
+      </div>
+
+      <div class="alert alert-danger" ng-if="c.serverErrors.length">
+        <ul class="grievance-error-list">
+          <li ng-repeat="err in c.serverErrors track by $index">{{err}}</li>
+        </ul>
+      </div>
+
+      <!-- Category filter -->
+      <div class="grievance-filter-bar">
+        <div class="btn-group" role="group" aria-label="Filter the queue by grievance category">
+          <button type="button" class="btn btn-default"
+                  ng-repeat="opt in c.data.categoryFilters track by opt.value"
+                  ng-class="{'active': c.isActiveFilter(opt.value)}"
+                  ng-disabled="c.filtering"
+                  aria-pressed="{{c.isActiveFilter(opt.value)}}"
+                  ng-click="c.setFilter(opt.value)">
+            {{opt.label}}
+          </button>
+        </div>
+        <span class="text-muted grievance-filter-status" ng-if="c.filtering">
+          <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Updating queue
+        </span>
+      </div>
+
+      <!-- Queue -->
+      <div class="table-responsive" ng-if="c.data.rows.length">
+        <table class="table table-striped grievance-queue-table">
+          <caption class="sr-only">Active grievances ordered by target resolution</caption>
+          <thead>
+            <tr>
+              <th scope="col">Number</th>
+              <th scope="col">Citizen</th>
+              <th scope="col">Category</th>
+              <th scope="col">Summary</th>
+              <th scope="col">State</th>
+              <th scope="col">Target resolution</th>
+              <th scope="col">SLA</th>
+              <th scope="col">Hash</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="row in c.data.rows track by row.sys_id">
+              <td class="grievance-cell-number" ng-bind="row.number"></td>
+              <td ng-bind="row.citizen_name"></td>
+              <td ng-bind="row.category"></td>
+              <td ng-bind="row.short_description"></td>
+              <td><span class="label" ng-class="row.stateClass" ng-bind="row.state"></span></td>
+              <td ng-bind="row.target_resolution"></td>
+              <td><span class="label" ng-class="row.slaClass" ng-bind="row.slaLabel"></span></td>
+              <td>
+                <code class="grievance-hash-inline" title="{{row.hash_full}}" ng-bind="row.hash_short"></code>
+              </td>
+              <td>
+                <button type="button" class="btn btn-primary btn-xs" ng-click="c.openModal(row)">
+                  <i class="fa fa-pencil" aria-hidden="true"></i> Manage
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center text-muted grievance-empty" ng-if="!c.data.rows.length">
+        <i class="fa fa-check-circle fa-2x" aria-hidden="true"></i>
+        <p ng-if="c.data.categoryFilter">No active grievances in this category.</p>
+        <p ng-if="!c.data.categoryFilter">No active grievances in the queue.</p>
+      </div>
+
+      <p class="text-muted grievance-asof">
+        Showing up to {{c.data.rowLimit}} active grievances, most urgent first &middot; as of {{c.data.asOf}}
+      </p>
+
+    </div>
+  </div>
+
+  <!-- ===================== INLINE MANAGE / RESOLVE MODAL ===================== -->
+  <div class="modal grievance-modal" ng-if="c.modal.open" role="dialog"
+       aria-labelledby="grievance-modal-title">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <button type="button" class="close" ng-click="c.closeModal()" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h3 class="modal-title" id="grievance-modal-title">
+            Manage {{c.modal.row.number}}
+          </h3>
+        </div>
+
+        <form name="manageForm" ng-submit="c.saveModal()" novalidate>
+          <div class="modal-body">
+            <dl class="grievance-modal-facts">
+              <dt>Citizen</dt>
+              <dd ng-bind="c.modal.row.citizen_name"></dd>
+              <dt>Summary</dt>
+              <dd ng-bind="c.modal.row.short_description"></dd>
+              <dt>Target resolution</dt>
+              <dd>
+                <span ng-bind="c.modal.row.target_resolution"></span>
+                <span class="label" ng-class="c.modal.row.slaClass" ng-bind="c.modal.row.slaLabel"></span>
+              </dd>
+            </dl>
+
+            <div class="form-group">
+              <label for="grievance-modal-state">State</label>
+              <select id="grievance-modal-state" name="state" class="form-control"
+                      ng-model="c.modal.state"
+                      ng-options="opt.value as opt.label for opt in c.data.stateChoices track by opt.value"
+                      required></select>
+            </div>
+
+            <div class="form-group"
+                 ng-class="{'has-error': c.modal.state === '3' &amp;&amp; !c.modal.closeNotes}">
+              <label for="grievance-modal-notes">
+                Resolution notes
+                <span class="text-danger" ng-if="c.modal.state === '3'">*</span>
+              </label>
+              <textarea id="grievance-modal-notes" name="closeNotes" class="form-control grievance-modal-notes"
+                        rows="4" maxlength="4000" ng-model="c.modal.closeNotes"></textarea>
+              <span class="help-block" ng-if="c.modal.state === '3' &amp;&amp; !c.modal.closeNotes">
+                Resolution notes are required to close a grievance as complete.
+              </span>
+              <span class="help-block" ng-if="c.modal.state === '3'">
+                Closing as complete also deactivates the grievance, which sends the citizen the resolution notification.
+              </span>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" ng-click="c.closeModal()" ng-disabled="c.saving">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" ng-disabled="c.saving || !c.isModalValid()">
+              <span ng-if="c.saving"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Saving</span>
+              <span ng-if="!c.saving"><i class="fa fa-save" aria-hidden="true"></i> Save</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop in grievance-modal-backdrop" ng-if="c.modal.open"></div>
+
+</div>
+]]></template>
+    </sp_widget>
+</record_update>

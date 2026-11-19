@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function () {
+    var c = this;
+
+    var PHONE_PATTERN = /^[0-9]{10}$/;
+
+    c.view = 'form';
+    c.submitting = false;
+    c.searching = false;
+    c.serverErrors = [];
+    c.clientErrors = {};
+    c.search = { number: '' };
+
+    c.form = {
+        citizen_name: '',
+        citizen_phone: '',
+        grievance_category: '',
+        short_description: '',
+        description: ''
+    };
+
+    if (c.data.receipt) {
+        c.view = 'receipt';
+    }
+
+    // Explicit c.* phone check in addition to ng-pattern, so the inline
+    // help-block message is driven by controller state too.
+    c.validatePhone = function () {
+        var value = (c.form.citizen_phone || '') + '';
+        if (!value) {
+            c.clientErrors.citizen_phone = 'Mobile number is required.';
+        } else if (!PHONE_PATTERN.test(value.trim())) {
+            c.clientErrors.citizen_phone = 'Enter exactly 10 digits (0-9), with no spaces or symbols.';
+        } else {
+            c.clientErrors.citizen_phone = '';
+        }
+        return !c.clientErrors.citizen_phone;
+    };
+
+    c.isFormValid = function () {
+        return !!(
+            (c.form.citizen_name || '').trim() &&
+            (c.form.grievance_category || '').trim() &&
+            (c.form.short_description || '').trim() &&
+            (c.form.description || '').trim() &&
+            PHONE_PATTERN.test(((c.form.citizen_phone || '') + '').trim())
+        );
+    };
+
+    c.submit = function () {
+        c.serverErrors = [];
+        if (!c.validatePhone() || !c.isFormValid()) {
+            return;
+        }
+
+        c.submitting = true;
+
+        // Fields MUST be assigned onto c.data before calling c.server.update()
+        c.data.action = 'submit_grievance';
+        c.data.citizen_name = c.form.citizen_name;
+        c.data.citizen_phone = c.form.citizen_phone;
+        c.data.grievance_category = c.form.grievance_category;
+        c.data.short_description = c.form.short_description;
+        c.data.description = c.form.description;
+
+        c.server.update().then(function () {
+            c.submitting = false;
+            c.data.action = null;
+
+            var result = c.data.submitResult;
+            if (result && result.success) {
+                c.view = 'receipt';
+                c.resetFormFields();
+            } else if (result && result.errors) {
+                c.serverErrors = result.errors;
+            } else {
+                c.serverErrors = ['Your grievance could not be submitted. Please try again.'];
+            }
+        });
+    };
+
+    // Server round-trip so the filter is applied by the query, not just in the DOM
+    c.runSearch = function () {
+        c.searching = true;
+        c.data.action = 'search_grievances';
+        c.data.searchNumber = c.search.number;
+
+        c.server.update().then(function () {
+            c.searching = false;
+            c.data.action = null;
+        });
+    };
+
+    c.clearSearch = function () {
+        c.search.number = '';
+        c.runSearch();
+    };
+
+    c.newGrievance = function () {
+        c.data.receipt = null;
+        c.serverErrors = [];
+        c.clientErrors = {};
+        c.resetFormFields();
+        c.view = 'form';
+    };
+
+    c.resetFormFields = function () {
+        c.form = {
+            citizen_name: '',
+            citizen_phone: '',
+            grievance_category: '',
+            short_description: '',
+            description: ''
+        };
+        c.clientErrors = {};
+    };
+};
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.grievance-intake {
+    .panel-title {
+        font-size: $font-size-large;
+        margin: 0;
+    }
+
+    .grievance-alert-title {
+        margin: 0 0 6px;
+        font-weight: 600;
+    }
+
+    .grievance-error-list {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .grievance-textarea {
+        resize: vertical;
+    }
+
+    /* ---------- Tamper-evident receipt ---------- */
+    .grievance-receipt {
+        .grievance-receipt-lead {
+            font-size: $font-size-large;
+            margin-bottom: 16px;
+        }
+
+        .grievance-receipt-facts {
+            margin-bottom: 12px;
+
+            dt {
+                font-size: $font-size-small;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: $text-muted;
+            }
+
+            dd {
+                margin-bottom: 12px;
+                word-break: break-word;
+            }
+        }
+
+        .grievance-receipt-number {
+            font-size: $font-size-large;
+            font-weight: 700;
+            color: $brand-success;
+        }
+
+        .grievance-receipt-note {
+            font-size: $font-size-small;
+        }
+    }
+
+    .grievance-hash-block {
+        display: block;
+        padding: 10px 12px;
+        font-family: $font-family-monospace;
+        font-size: $font-size-small;
+        line-height: 1.5;
+        word-break: break-all;
+        word-wrap: break-word;
+        background-color: $pre-bg;
+        border: 1px solid $table-border-color;
+        border-radius: $border-radius-base;
+        color: $text-color;
+    }
+
+    /* ---------- Tracker ---------- */
+    .grievance-tracker {
+        .grievance-search {
+            margin-bottom: 14px;
+        }
+
+        .grievance-table {
+            font-size: $font-size-small;
+
+            th {
+                white-space: nowrap;
+            }
+
+            .grievance-cell-number {
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            .label {
+                font-size: $font-size-small;
+            }
+        }
+
+        .grievance-hash-inline {
+            font-family: $font-family-monospace;
+            font-size: $font-size-small;
+            cursor: help;
+            background-color: transparent;
+            color: $text-muted;
+            padding: 0;
+        }
+
+        .grievance-empty {
+            padding: 18px 0;
+        }
+
+        .grievance-asof {
+            margin: 8px 0 0;
+            font-size: $font-size-small;
+            text-align: right;
+        }
+    }
+}
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description>Lets an authenticated citizen file a grievance, returns a tamper-evident receipt (number, target resolution, cryptographic hash) and tracks their own grievances.</description>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>x_1850267_public_0_citizen_intake</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+}]]></link>
+        <name>Grievance Citizen Intake</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function () {
+    var TABLE = 'x_1850267_public_0_grievance';
+
+    // Server-side truth for the category choice list (never trust the client payload)
+    var CATEGORY_CHOICES = [
+        { label: 'Water', value: 'water' },
+        { label: 'Electricity', value: 'electricity' },
+        { label: 'Sanitation', value: 'sanitation' },
+        { label: 'Roads', value: 'roads' }
+    ];
+
+    // Each state value maps to its own Bootstrap 3 label class so the badge
+    // actually communicates meaning instead of rendering one flat colour.
+    var STATE_CLASS_MAP = {
+        '1': 'label-info', // Open
+        '2': 'label-warning', // Work in Progress
+        '3': 'label-success', // Closed Complete
+        '4': 'label-danger', // Closed Incomplete
+        '7': 'label-default', // Closed Skipped
+        '-5': 'label-default' // Pending
+    };
+
+    // Escalation is an integer choice 0-3; 3 is the overdue/breached tier.
+    var ESCALATION_CLASS_MAP = {
+        '0': 'label-default',
+        '1': 'label-info',
+        '2': 'label-warning',
+        '3': 'label-danger'
+    };
+
+    // Exactly 10 numeric digits. The client enforces the same rule via ng-pattern,
+    // but the client is never trusted - this is the authoritative check.
+    var PHONE_PATTERN = /^[0-9]{10}$/;
+
+    var HASH_PREVIEW_LENGTH = 12;
+
+    // Initialise every data.* property so the template never binds to undefined
+    data.categories = CATEGORY_CHOICES;
+    data.grievances = [];
+    data.receipt = null;
+    data.submitResult = null;
+    data.searchApplied = '';
+    data.rowLimit = 25;
+    data.asOf = '';
+
+    var action = input && input.action ? input.action + '' : '';
+
+    if (action === 'submit_grievance') {
+        data.submitResult = submitGrievance(input);
+        if (data.submitResult.success) {
+            data.receipt = data.submitResult.receipt;
+        }
+    } else if (action === 'search_grievances') {
+        data.searchApplied = trim(input && input.searchNumber);
+    }
+
+    // Always (re)load the tracker so the list reflects the latest state after
+    // a submit or a search round-trip.
+    data.grievances = loadGrievances(data.searchApplied);
+    data.asOf = new GlideDateTime().getDisplayValue();
+
+    // ------------------------------------------------------------------
+    // Submission
+    // ------------------------------------------------------------------
+    function submitGrievance(payload) {
+        var citizenName = trim(payload.citizen_name);
+        var citizenPhone = trim(payload.citizen_phone);
+        var category = trim(payload.grievance_category);
+        var shortDescription = trim(payload.short_description);
+        var description = trim(payload.description);
+
+        var errors = [];
+
+        if (!citizenName) {
+            errors.push('Full name is required.');
+        }
+
+        if (!citizenPhone) {
+            errors.push('Mobile number is required.');
+        } else if (!PHONE_PATTERN.test(citizenPhone)) {
+            errors.push('Mobile number must be exactly 10 digits (0-9), with no spaces or symbols.');
+        }
+
+        if (!category) {
+            errors.push('Grievance category is required.');
+        } else if (!isValidCategory(category)) {
+            errors.push('Select a valid grievance category.');
+        }
+
+        if (!shortDescription) {
+            errors.push('Summary is required.');
+        }
+
+        if (!description) {
+            errors.push('Detailed description is required.');
+        }
+
+        if (errors.length > 0) {
+            return { success: false, errors: errors };
+        }
+
+        var gr = new GlideRecordSecure(TABLE);
+        gr.initialize();
+        gr.setValue('citizen_name', citizenName.substring(0, 100));
+        gr.setValue('citizen_phone', citizenPhone);
+        gr.setValue('grievance_category', category);
+        gr.setValue('short_description', shortDescription.substring(0, 160));
+        gr.setValue('description', description.substring(0, 4000));
+
+        var sysId = gr.insert();
+        if (!sysId) {
+            return {
+                success: false,
+                errors: ['Your grievance could not be submitted. You may not have permission to create a grievance.']
+            };
+        }
+
+        // cryptographic_hash and target_resolution are populated by before-insert
+        // business rules, so the record MUST be re-read to obtain them.
+        var receiptGr = new GlideRecordSecure(TABLE);
+        receiptGr.addQuery('sys_id', sysId);
+        receiptGr.setLimit(1);
+        receiptGr.query();
+
+        if (!receiptGr.next()) {
+            return {
+                success: false,
+                errors: ['Your grievance was saved, but the receipt could not be retrieved. Use the tracker below to find it.']
+            };
+        }
+
+        return {
+            success: true,
+            receipt: {
+                sys_id: sysId + '',
+                number: receiptGr.getValue('number') || '',
+                target_resolution: receiptGr.getDisplayValue('target_resolution') || '',
+                cryptographic_hash: receiptGr.getValue('cryptographic_hash') || ''
+            }
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // My grievances tracker
+    // ------------------------------------------------------------------
+    function loadGrievances(searchNumber) {
+        var rows = [];
+
+        var gr = new GlideRecordSecure(TABLE);
+        gr.addQuery('opened_by', gs.getUserID());
+        if (searchNumber) {
+            gr.addQuery('number', 'CONTAINS', searchNumber);
+        }
+        gr.orderByDesc('sys_created_on');
+        gr.setLimit(25);
+        gr.query();
+
+        while (gr.next()) {
+            var stateValue = gr.getValue('state') + '';
+            var escalationValue = gr.getValue('escalation') + '';
+            var isActive = gr.getValue('active') === '1' || gr.getValue('active') === 'true';
+            var hash = gr.getValue('cryptographic_hash') || '';
+            var closeNotes = gr.getValue('close_notes') || '';
+            var resolved = stateValue === '3' || !isActive;
+
+            rows.push({
+                sys_id: gr.getUniqueValue() + '',
+                number: gr.getValue('number') || '',
+                category: gr.getDisplayValue('grievance_category') || '',
+                short_description: gr.getValue('short_description') || '',
+                state: gr.getDisplayValue('state') || '',
+                stateClass: STATE_CLASS_MAP[stateValue] || 'label-default',
+                target_resolution: gr.getDisplayValue('target_resolution') || '',
+                escalation: gr.getDisplayValue('escalation') || '',
+                escalationClass: ESCALATION_CLASS_MAP[escalationValue] || 'label-default',
+                resolved: resolved,
+                close_notes: resolved ? closeNotes : '',
+                hash_full: hash,
+                hash_short: hash ? hash.substring(0, HASH_PREVIEW_LENGTH) + '...' : ''
+            });
+        }
+
+        return rows;
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+    function trim(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return (value + '').trim();
+    }
+
+    function isValidCategory(value) {
+        for (var i = 0; i < CATEGORY_CHOICES.length; i++) {
+            if (CATEGORY_CHOICES[i].value === value) {
+                return true;
+            }
+        }
+        return false;
+    }
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 07:39:51</sys_created_on>
+        <sys_id>4ffca499d4a646fc849d9ae738cbe37a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Grievance Citizen Intake</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sp_widget_4ffca499d4a646fc849d9ae738cbe37a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 07:39:51</sys_updated_on>
+        <template><![CDATA[<div class="grievance-intake">
+
+  <!-- ============================ SUBMISSION FORM ============================ -->
+  <div class="panel panel-default" ng-if="c.view === 'form'">
+    <div class="panel-heading">
+      <h2 class="panel-title">File a Grievance</h2>
+    </div>
+    <div class="panel-body">
+
+      <div class="alert alert-danger" ng-if="c.serverErrors.length">
+        <p class="grievance-alert-title"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Your grievance was not submitted:</p>
+        <ul class="grievance-error-list">
+          <li ng-repeat="err in c.serverErrors track by $index">{{err}}</li>
+        </ul>
+      </div>
+
+      <form name="intakeForm" ng-submit="c.submit()" novalidate>
+
+        <div class="row">
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': intakeForm.citizen_name.$touched &amp;&amp; intakeForm.citizen_name.$invalid}">
+              <label for="grv-citizen-name">Full name <span class="text-danger">*</span></label>
+              <input type="text" id="grv-citizen-name" name="citizen_name" class="form-control"
+                     maxlength="100" ng-model="c.form.citizen_name" required />
+              <span class="help-block" ng-if="intakeForm.citizen_name.$touched &amp;&amp; intakeForm.citizen_name.$error.required">
+                Full name is required.
+              </span>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': (intakeForm.citizen_phone.$touched &amp;&amp; intakeForm.citizen_phone.$invalid) || c.clientErrors.citizen_phone}">
+              <label for="grv-citizen-phone">Mobile number <span class="text-danger">*</span></label>
+              <input type="tel" id="grv-citizen-phone" name="citizen_phone" class="form-control"
+                     maxlength="10" placeholder="10 digits" ng-model="c.form.citizen_phone"
+                     ng-pattern="/^[0-9]{10}$/" ng-change="c.validatePhone()"
+                     ng-blur="c.validatePhone()" required />
+              <span class="help-block" ng-if="intakeForm.citizen_phone.$touched &amp;&amp; intakeForm.citizen_phone.$error.required">
+                Mobile number is required.
+              </span>
+              <span class="help-block" ng-if="intakeForm.citizen_phone.$touched &amp;&amp; intakeForm.citizen_phone.$error.pattern">
+                Enter exactly 10 digits (0-9), with no spaces or symbols.
+              </span>
+              <span class="help-block" ng-if="c.clientErrors.citizen_phone &amp;&amp; !intakeForm.citizen_phone.$error.pattern &amp;&amp; !intakeForm.citizen_phone.$error.required">
+                {{c.clientErrors.citizen_phone}}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" ng-class="{'has-error': intakeForm.grievance_category.$touched &amp;&amp; intakeForm.grievance_category.$invalid}">
+          <label for="grv-category">Grievance category <span class="text-danger">*</span></label>
+          <select id="grv-category" name="grievance_category" class="form-control"
+                  ng-model="c.form.grievance_category"
+                  ng-options="opt.value as opt.label for opt in c.data.categories track by opt.value" required>
+            <option value="">-- Select a category --</option>
+          </select>
+          <span class="help-block" ng-if="intakeForm.grievance_category.$touched &amp;&amp; intakeForm.grievance_category.$error.required">
+            Grievance category is required.
+          </span>
+        </div>
+
+        <div class="form-group" ng-class="{'has-error': intakeForm.short_description.$touched &amp;&amp; intakeForm.short_description.$invalid}">
+          <label for="grv-short-description">Summary <span class="text-danger">*</span></label>
+          <input type="text" id="grv-short-description" name="short_description" class="form-control"
+                 maxlength="160" ng-model="c.form.short_description" required />
+          <span class="help-block" ng-if="intakeForm.short_description.$touched &amp;&amp; intakeForm.short_description.$error.required">
+            Summary is required.
+          </span>
+        </div>
+
+        <div class="form-group" ng-class="{'has-error': intakeForm.description.$touched &amp;&amp; intakeForm.description.$invalid}">
+          <label for="grv-description">What happened? <span class="text-danger">*</span></label>
+          <textarea id="grv-description" name="description" class="form-control grievance-textarea"
+                    rows="5" maxlength="4000" ng-model="c.form.description" required></textarea>
+          <span class="help-block" ng-if="intakeForm.description.$touched &amp;&amp; intakeForm.description.$error.required">
+            A detailed description is required.
+          </span>
+        </div>
+
+        <button type="submit" class="btn btn-primary"
+                ng-disabled="c.submitting || !c.isFormValid()">
+          <span ng-if="c.submitting"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Submitting</span>
+          <span ng-if="!c.submitting"><i class="fa fa-paper-plane" aria-hidden="true"></i> Submit grievance</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ====================== TAMPER-EVIDENT RECEIPT PANEL ====================== -->
+  <div class="panel panel-success grievance-receipt" ng-if="c.view === 'receipt' &amp;&amp; c.data.receipt">
+    <div class="panel-heading">
+      <h2 class="panel-title">
+        <i class="fa fa-shield" aria-hidden="true"></i> Tamper-Evident Receipt
+      </h2>
+    </div>
+    <div class="panel-body">
+      <p class="grievance-receipt-lead">
+        <i class="fa fa-check-circle text-success" aria-hidden="true"></i>
+        Your grievance has been recorded. Keep this receipt.
+      </p>
+
+      <dl class="grievance-receipt-facts">
+        <dt>Grievance number</dt>
+        <dd class="grievance-receipt-number" ng-bind="c.data.receipt.number"></dd>
+
+        <dt>Target resolution</dt>
+        <dd ng-bind="c.data.receipt.target_resolution"></dd>
+
+        <dt>Cryptographic hash (64 characters)</dt>
+        <dd>
+          <code class="grievance-hash-block" ng-bind="c.data.receipt.cryptographic_hash"></code>
+        </dd>
+      </dl>
+
+      <p class="text-muted grievance-receipt-note">
+        This hash is a tamper-evident fingerprint of your submission - if the recorded grievance is
+        ever altered, the hash will no longer match.
+      </p>
+
+      <button type="button" class="btn btn-default" ng-click="c.newGrievance()">
+        <i class="fa fa-plus" aria-hidden="true"></i> File another grievance
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================= MY GRIEVANCES TRACKER ========================= -->
+  <div class="panel panel-default grievance-tracker">
+    <div class="panel-heading">
+      <h2 class="panel-title">My Grievances</h2>
+    </div>
+
+    <div class="panel-body">
+      <form name="trackerSearchForm" ng-submit="c.runSearch()" novalidate>
+        <div class="form-group grievance-search">
+          <label for="grv-search">Quick search by grievance number</label>
+          <div class="input-group">
+            <input type="text" id="grv-search" name="searchNumber" class="form-control"
+                   placeholder="e.g. GRV0001001" ng-model="c.search.number" />
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-default" ng-disabled="c.searching">
+                <span ng-if="c.searching"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Searching</span>
+                <span ng-if="!c.searching"><i class="fa fa-search" aria-hidden="true"></i> Search</span>
+              </button>
+              <button type="button" class="btn btn-default" ng-click="c.clearSearch()"
+                      ng-disabled="c.searching || !c.data.searchApplied">
+                Clear
+              </button>
+            </span>
+          </div>
+          <span class="help-block" ng-if="c.data.searchApplied">
+            Filtered on grievance number containing "{{c.data.searchApplied}}".
+          </span>
+        </div>
+      </form>
+
+      <div class="table-responsive" ng-if="c.data.grievances.length">
+        <table class="table table-striped grievance-table">
+          <caption class="sr-only">Your most recent grievances</caption>
+          <thead>
+            <tr>
+              <th scope="col">Number</th>
+              <th scope="col">Category</th>
+              <th scope="col">Summary</th>
+              <th scope="col">State</th>
+              <th scope="col">Target resolution</th>
+              <th scope="col">Escalation</th>
+              <th scope="col">Resolution notes</th>
+              <th scope="col">Hash</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="row in c.data.grievances track by row.sys_id">
+              <td class="grievance-cell-number" ng-bind="row.number"></td>
+              <td ng-bind="row.category"></td>
+              <td ng-bind="row.short_description"></td>
+              <td>
+                <span class="label" ng-class="row.stateClass" ng-bind="row.state"></span>
+              </td>
+              <td ng-bind="row.target_resolution"></td>
+              <td>
+                <span class="label" ng-class="row.escalationClass" ng-bind="row.escalation"></span>
+              </td>
+              <td>
+                <span ng-if="row.resolved &amp;&amp; row.close_notes" ng-bind="row.close_notes"></span>
+                <span class="text-muted" ng-if="!row.resolved">&mdash;</span>
+                <span class="text-muted" ng-if="row.resolved &amp;&amp; !row.close_notes">No notes recorded</span>
+              </td>
+              <td>
+                <code class="grievance-hash-inline" title="{{row.hash_full}}" ng-bind="row.hash_short"></code>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center text-muted grievance-empty" ng-if="!c.data.grievances.length">
+        <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
+        <p ng-if="c.data.searchApplied">No grievance matches that number.</p>
+        <p ng-if="!c.data.searchApplied">You have not filed any grievances yet.</p>
+      </div>
+
+      <p class="text-muted grievance-asof">
+        Showing up to {{c.data.rowLimit}} most recent grievances &middot; as of {{c.data.asOf}}
+      </p>
+    </div>
+  </div>
+
+</div>
+]]></template>
+    </sp_widget>
+</record_update>

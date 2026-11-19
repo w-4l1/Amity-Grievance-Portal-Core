@@ -11,7 +11,7 @@
         <enable_embeddables>false</enable_embeddables>
         <enable_favorites>false</enable_favorites>
         <hide_portal_name>false</hide_portal_name>
-        <homepage/>
+        <homepage display_value="grievance_home">62bd7ae573a0d310e9bdf7303ab8b74c</homepage>
         <icon/>
         <inactive>false</inactive>
         <kb_knowledge_base/>
@@ -28,7 +28,7 @@
         <search_application/>
         <search_results_configuration/>
         <sp_chat_queue/>
-        <sp_rectangle_menu/>
+        <sp_rectangle_menu display_value="Public Grievance Portal Menu">b4781f7aa3d640598e054094513f349f</sp_rectangle_menu>
         <sys_class_name>sp_portal</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-11-14 11:34:14</sys_created_on>
@@ -41,7 +41,7 @@
         <sys_update_name>sp_portal_241db6a573a0d310e9bdf7303ab8b7a1</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2026-11-14 11:34:14</sys_updated_on>
-        <theme/>
+        <theme display_value="Coral">281507c44317d210ca4c1f425db8f2fd</theme>
         <title>Public Grievance Portal</title>
         <ts_index_group/>
         <url_suffix>grievance</url_suffix>
