@@ -18,7 +18,7 @@ GrievanceHashEngine.prototype = {
      * Generates a SHA-256 hash of the supplied payload.
      *
      * @param {string} payload - the text to hash
-     * @return {string} lowercase hex-encoded SHA-256 digest, or an empty
+     * @return {string} hex-encoded SHA-256 digest, or an empty
      *                  string when the payload is empty
      */
     generateHash: function (payload) {
@@ -33,6 +33,56 @@ GrievanceHashEngine.prototype = {
         }
 
         return new GlideDigest().getSHA256Hex(text)
+    },
+
+    /**
+     * Builds the canonical hash payload for a grievance record.
+     *
+     * This MUST stay byte-for-byte identical to the payload built by the
+     * "Generate Ticket Hash" business rule (sys_script, order 200), otherwise
+     * verifyIntegrity() would report a false TAMPER ALERT on untampered
+     * records. Both use: citizen_name | citizen_phone | description
+     *
+     * @param {GlideRecord} gr - a grievance record
+     * @return {string} the pipe-delimited payload
+     */
+    buildPayload: function (gr) {
+        return [
+            gr.getValue('citizen_name') || '',
+            gr.getValue('citizen_phone') || '',
+            gr.getValue('description') || '',
+        ].join('|')
+    },
+
+    /**
+     * Recomputes the SHA-256 digest for a grievance and compares it against
+     * the stored cryptographic_hash.
+     *
+     * The comparison is case-insensitive because GlideDigest.getSHA256Hex()
+     * returns uppercase hex on this platform while callers and external
+     * verifiers commonly normalise to lowercase. Case is not security
+     * relevant for a hex digest.
+     *
+     * @param {GlideRecord} gr - a grievance record
+     * @return {Object} { valid: boolean, storedHash: string, computedHash: string }
+     */
+    verifyIntegrity: function (gr) {
+        if (!gr) {
+            return { valid: false, storedHash: '', computedHash: '' }
+        }
+
+        var storedHash = gr.getValue('cryptographic_hash') || ''
+        var computedHash = this.generateHash(this.buildPayload(gr))
+
+        // An empty stored hash cannot be asserted as valid.
+        var valid =
+            !!storedHash && !!computedHash && storedHash.toLowerCase() === computedHash.toLowerCase()
+
+        return {
+            valid: valid,
+            storedHash: storedHash,
+            computedHash: computedHash,
+        }
     },
 
     type: 'GrievanceHashEngine',

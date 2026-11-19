@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function () {
+        <client_script><![CDATA[api.controller = function ($rootScope, $scope) {
     var c = this;
 
     c.refreshing = false;
@@ -13,6 +13,17 @@
             c.refreshing = false;
         });
     };
+
+    // Live KPI auto-refresh: the Grievance Agent Queue broadcasts this event
+    // after an agent successfully changes a ticket's state, so the SLA tiles
+    // recalculate without a page reload.
+    // The deregistration handle is bound to $scope.$on('$destroy') so the
+    // listener does not leak when this widget is removed from the page.
+    var unsubscribe = $rootScope.$on('x_1850267_public_0.grievance.updated', function () {
+        c.refresh();
+    });
+
+    $scope.$on('$destroy', unsubscribe);
 };
 ]]></client_script>
         <controller_as>c</controller_as>
@@ -98,8 +109,7 @@
         font-size: 11px;
         text-align: right;
     }
-}
-</css>
+}</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description>Displays total open grievances and the number of open grievances past their target resolution date.</description>

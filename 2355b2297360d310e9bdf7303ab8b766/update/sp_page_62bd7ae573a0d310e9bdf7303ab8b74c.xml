@@ -3,7 +3,7 @@
         <category>custom</category>
         <css/>
         <draft>false</draft>
-        <dynamic_title_structure>Public Grievance Portal</dynamic_title_structure>
+        <dynamic_title_structure>Citizen Portal</dynamic_title_structure>
         <human_readable_url_structure/>
         <id>grievance_home</id>
         <internal>false</internal>

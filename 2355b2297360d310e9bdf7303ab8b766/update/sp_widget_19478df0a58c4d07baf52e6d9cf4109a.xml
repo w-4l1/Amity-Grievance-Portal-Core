@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function ($rootScope, $window) {
+        <client_script><![CDATA[api.controller = function ($rootScope) {
     var c = this;
 
     c.saving = false;
     c.filtering = false;
+    c.verifyingSysId = null;
     c.serverErrors = [];
+
+    // Accumulated verification outcomes keyed by grievance sys_id, so a badge
+    // stays visible after the server rebuilds c.data.rows on later round trips.
+    c.verifyResults = {};
 
     c.modal = {
         open: false,
@@ -32,6 +37,42 @@
             c.filtering = false;
             c.data.action = null;
         });
+    };
+
+    // ---------------- Live cryptographic integrity verification ----------------
+    c.verifyRow = function (row) {
+        if (c.verifyingSysId) {
+            return;
+        }
+
+        c.verifyingSysId = row.sys_id;
+        c.serverErrors = [];
+
+        // Assign onto c.data BEFORE c.server.update()
+        c.data.action = 'verify_hash';
+        c.data.verifySysId = row.sys_id;
+
+        c.server.update().then(function () {
+            c.verifyingSysId = null;
+            c.data.action = null;
+
+            var result = c.data.verifyResult;
+            if (result && result.success) {
+                c.verifyResults[result.sys_id] = result;
+            } else if (result && result.errors) {
+                c.serverErrors = result.errors;
+            } else {
+                c.serverErrors = ['The integrity check could not be completed. Please try again.'];
+            }
+        });
+    };
+
+    c.isVerifying = function (row) {
+        return c.verifyingSysId === row.sys_id;
+    };
+
+    c.verdictFor = function (row) {
+        return c.verifyResults[row.sys_id] || null;
     };
 
     // ---------------- Inline manage / resolve modal ----------------
@@ -85,29 +126,18 @@
                 // already refreshed in place.
                 c.closeModal();
 
-                // Broadcast for any sibling widget that chooses to listen.
-                // The installed Grievance SLA Dashboard does NOT subscribe to this,
-                // so c.data.kpiStale drives a visible reload prompt instead of
-                // pretending the KPI tiles refreshed.
+                // The Grievance SLA Dashboard subscribes to this event and calls
+                // its own c.refresh(), so the KPI tiles now update automatically.
                 $rootScope.$broadcast('x_1850267_public_0.grievance.updated', {
                     number: result.number,
                     closed: !!result.closed
                 });
-                $rootScope.$broadcast('sp.widget.refresh');
             } else if (result && result.errors) {
                 c.serverErrors = result.errors;
             } else {
                 c.serverErrors = ['The grievance could not be updated. Please try again.'];
             }
         });
-    };
-
-    c.dismissKpiPrompt = function () {
-        c.data.kpiStale = false;
-    };
-
-    c.reloadPage = function () {
-        $window.location.reload();
     };
 };
 ]]></client_script>
@@ -123,10 +153,9 @@
         padding-left: 18px;
     }
 
-    .grievance-kpi-prompt {
-        .grievance-kpi-reload {
-            margin-left: 8px;
-        }
+    .grievance-unverified {
+        font-size: $font-size-small;
+        white-space: nowrap;
     }
 
     .grievance-filter-bar {
@@ -264,6 +293,7 @@
     data.rowLimit = 50;
     data.asOf = '';
     data.saveResult = null;
+    data.verifyResult = null;
     data.kpiStale = false;
 
     var action = input && input.action ? input.action + '' : '';
@@ -275,6 +305,9 @@
         data.saveResult = saveGrievance(input);
         // Any successful state/active change moves the sibling KPI dashboard numbers
         data.kpiStale = !!data.saveResult.success;
+    } else if (action === 'verify_hash') {
+        data.categoryFilter = normaliseCategory(input && input.categoryFilter);
+        data.verifyResult = verifyHash(input && input.verifySysId);
     }
 
     data.rows = loadQueue(data.categoryFilter);
@@ -320,6 +353,7 @@
                 citizen_name: gr.getValue('citizen_name') || '',
                 category: gr.getDisplayValue('grievance_category') || '',
                 short_description: gr.getValue('short_description') || '',
+                assignment_group: gr.getDisplayValue('assignment_group') || '',
                 state: gr.getDisplayValue('state') || '',
                 stateValue: stateValue,
                 stateClass: STATE_CLASS_MAP[stateValue] || 'label-default',
@@ -334,6 +368,43 @@
         }
 
         return rows;
+    }
+
+    // ------------------------------------------------------------------
+    // Live cryptographic integrity verification
+    // ------------------------------------------------------------------
+    function verifyHash(sysId) {
+        var id = trim(sysId);
+
+        if (!id) {
+            return { success: false, errors: ['No grievance was selected for verification.'] };
+        }
+
+        var gr = new GlideRecordSecure(TABLE);
+        gr.addQuery('sys_id', id);
+        gr.setLimit(1);
+        gr.query();
+
+        if (!gr.next()) {
+            return {
+                success: false,
+                errors: ['Grievance not found, or you do not have permission to read it.']
+            };
+        }
+
+        var outcome = new GrievanceHashEngine().verifyIntegrity(gr);
+
+        return {
+            success: true,
+            sys_id: id,
+            number: gr.getValue('number') || '',
+            valid: !!outcome.valid,
+            storedHash: outcome.storedHash || '',
+            computedHash: outcome.computedHash || '',
+            badgeLabel: outcome.valid ? 'VERIFIED' : 'TAMPER ALERT',
+            badgeClass: outcome.valid ? 'label-success' : 'label-danger',
+            verifiedAt: new GlideDateTime().getDisplayValue()
+        };
     }
 
     // ------------------------------------------------------------------
@@ -454,17 +525,8 @@
 
     <div class="panel-body">
 
-      <!-- KPI staleness prompt: the sibling SLA dashboard does not subscribe to
-           our broadcast, so say so plainly instead of leaving stale numbers. -->
-      <div class="alert alert-info grievance-kpi-prompt" ng-if="c.data.kpiStale">
-        <button type="button" class="close" ng-click="c.dismissKpiPrompt()" aria-label="Dismiss">
-          <span aria-hidden="true">&times;</span>
-        </button>
-        <strong>Counts updated</strong> &mdash; the queue below is current. Reload the page to refresh the SLA KPI tiles.
-        <button type="button" class="btn btn-default btn-xs grievance-kpi-reload" ng-click="c.reloadPage()">
-          <i class="fa fa-refresh" aria-hidden="true"></i> Reload for KPI refresh
-        </button>
-      </div>
+      <!-- KPI tiles now auto-refresh: the Grievance SLA Dashboard subscribes to
+           x_1850267_public_0.grievance.updated and calls its own refresh. -->
 
       <div class="alert alert-danger" ng-if="c.serverErrors.length">
         <ul class="grievance-error-list">
@@ -499,11 +561,13 @@
               <th scope="col">Citizen</th>
               <th scope="col">Category</th>
               <th scope="col">Summary</th>
+              <th scope="col">Assignment group</th>
               <th scope="col">State</th>
               <th scope="col">Target resolution</th>
               <th scope="col">SLA</th>
               <th scope="col">Hash</th>
-              <th scope="col">Action</th>
+              <th scope="col">Integrity</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -512,6 +576,10 @@
               <td ng-bind="row.citizen_name"></td>
               <td ng-bind="row.category"></td>
               <td ng-bind="row.short_description"></td>
+              <td>
+                <span ng-if="row.assignment_group" ng-bind="row.assignment_group"></span>
+                <span class="text-muted" ng-if="!row.assignment_group">Unassigned</span>
+              </td>
               <td><span class="label" ng-class="row.stateClass" ng-bind="row.state"></span></td>
               <td ng-bind="row.target_resolution"></td>
               <td><span class="label" ng-class="row.slaClass" ng-bind="row.slaLabel"></span></td>
@@ -519,9 +587,29 @@
                 <code class="grievance-hash-inline" title="{{row.hash_full}}" ng-bind="row.hash_short"></code>
               </td>
               <td>
-                <button type="button" class="btn btn-primary btn-xs" ng-click="c.openModal(row)">
-                  <i class="fa fa-pencil" aria-hidden="true"></i> Manage
-                </button>
+                <span class="label" ng-if="c.verdictFor(row)"
+                      ng-class="c.verdictFor(row).badgeClass"
+                      title="Stored: {{c.verdictFor(row).storedHash}} | Recomputed: {{c.verdictFor(row).computedHash}}"
+                      ng-bind="c.verdictFor(row).badgeLabel"></span>
+                <span class="text-muted grievance-unverified" ng-if="!c.verdictFor(row) &amp;&amp; !c.isVerifying(row)">
+                  Not checked
+                </span>
+                <span class="text-muted" ng-if="c.isVerifying(row)">
+                  <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Checking
+                </span>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-primary btn-xs" ng-click="c.openModal(row)">
+                    <i class="fa fa-pencil" aria-hidden="true"></i> Manage
+                  </button>
+                  <button type="button" class="btn btn-default btn-xs"
+                          ng-click="c.verifyRow(row)"
+                          ng-disabled="c.verifyingSysId"
+                          aria-label="Verify cryptographic integrity of {{row.number}}">
+                    <i class="fa fa-shield" aria-hidden="true"></i> Verify
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
