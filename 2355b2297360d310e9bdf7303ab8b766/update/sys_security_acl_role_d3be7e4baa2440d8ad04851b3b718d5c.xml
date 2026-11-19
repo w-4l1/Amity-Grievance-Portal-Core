@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl_role">
+    <sys_security_acl_role action="INSERT_OR_UPDATE">
+        <sys_class_name>sys_security_acl_role</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 04:35:47</sys_created_on>
+        <sys_id>d3be7e4baa2440d8ad04851b3b718d5c</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1850267_public_0_grievance.x_1850267_public_0.grievance_agent</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_security_acl display_value="x_1850267_public_0_grievance">5a761ca723284261905746860ae6569d</sys_security_acl>
+        <sys_update_name>sys_security_acl_role_d3be7e4baa2440d8ad04851b3b718d5c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 04:35:47</sys_updated_on>
+        <sys_user_role display_value="x_1850267_public_0.grievance_agent" name="x_1850267_public_0.grievance_agent">d58204d7ef144985aefb8633eaeeed1e</sys_user_role>
+    </sys_security_acl_role>
+</record_update>

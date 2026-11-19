@@ -9,7 +9,7 @@
         <internal>false</internal>
         <omit_watcher>false</omit_watcher>
         <public>false</public>
-        <roles/>
+        <roles>x_1850267_public_0.grievance_agent,x_1850267_public_0.grievance_manager</roles>
         <seo_script/>
         <short_description>Operational dashboard of grievance volume and SLA breaches for agents.</short_description>
         <sys_class_name>sp_page</sys_class_name>

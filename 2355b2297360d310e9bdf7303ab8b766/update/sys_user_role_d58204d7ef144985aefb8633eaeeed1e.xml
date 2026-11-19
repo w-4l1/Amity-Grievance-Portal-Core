@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_user_role">
+    <sys_user_role action="INSERT_OR_UPDATE">
+        <assignable_by/>
+        <can_delegate>true</can_delegate>
+        <description>Works grievance tickets in the Grievance Operations Workspace.</description>
+        <elevated_privilege>false</elevated_privilege>
+        <federated_id>8uF5AgBsCB3Cz4/Ogk9u2J8ljF3WEKo/L31eK8YUGbU=</federated_id>
+        <grantable>true</grantable>
+        <includes_roles/>
+        <name>x_1850267_public_0.grievance_agent</name>
+        <scoped_admin>false</scoped_admin>
+        <suffix>grievance_agent</suffix>
+        <sys_class_name>sys_user_role</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-15 07:33:03</sys_created_on>
+        <sys_id>d58204d7ef144985aefb8633eaeeed1e</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1850267_public_0.grievance_agent</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sys_user_role_d58204d7ef144985aefb8633eaeeed1e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-15 07:33:03</sys_updated_on>
+    </sys_user_role>
+</record_update>
