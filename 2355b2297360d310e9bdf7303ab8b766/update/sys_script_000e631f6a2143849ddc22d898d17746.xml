@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>false</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850267_public_0_grievance</collection>
+        <condition/>
+        <description>Maps grievance_category to the owning departmental group and populates assignment_group when it is empty. Runs before Generate Ticket Hash (order 200).</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Route Grievance to Department</name>
+        <order>150</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[/**
+ * Route Grievance to Department
+ *
+ * Before-insert routing: maps grievance_category to the owning departmental
+ * group and populates assignment_group ONLY when it is empty, so an explicit
+ * choice made by a citizen-facing form, an agent, or an integration is never
+ * overwritten.
+ *
+ * Runs at order 150, ahead of "Generate Ticket Hash" (order 200).
+ * assignment_group is not part of the hash payload
+ * (citizen_name|citizen_phone|description), so routing cannot affect the
+ * integrity digest.
+ */
+(function executeRule(current, previous /*null when async*/) {
+    var CATEGORY_TO_GROUP = {
+        water: 'Water Supply Dept',
+        electricity: 'Electricity Board Dept',
+        sanitation: 'Sanitation & Waste Dept',
+        roads: 'Roads & Infrastructure Dept',
+    }
+
+    // Respect an assignment group that is already set.
+    if (current.getValue('assignment_group')) {
+        return
+    }
+
+    var category = (current.getValue('grievance_category') || '').trim().toLowerCase()
+
+    if (!category) {
+        return
+    }
+
+    var groupName = CATEGORY_TO_GROUP[category]
+
+    if (!groupName) {
+        gs.warn(
+            '[Grievance Routing] No department mapped for category "' +
+                category +
+                '". Leaving assignment_group empty for manual triage.',
+        )
+        return
+    }
+
+    // Resolved by name rather than a hardcoded sys_id so the rule stays valid
+    // across instances where the groups were installed with different sys_ids.
+    var grp = new GlideRecord('sys_user_group')
+    grp.addQuery('name', groupName)
+    grp.addQuery('active', true)
+    grp.setLimit(1)
+    grp.query()
+
+    if (grp.next()) {
+        current.setValue('assignment_group', grp.getUniqueValue())
+    } else {
+        gs.warn(
+            '[Grievance Routing] Department group "' +
+                groupName +
+                '" was not found or is inactive. Leaving assignment_group empty for manual triage.',
+        )
+    }
+})(current, previous)
+]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 08:25:37</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>000e631f6a2143849ddc22d898d17746</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Route Grievance to Department</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sys_script_000e631f6a2143849ddc22d898d17746</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 08:25:37</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=000e631f6a2143849ddc22d898d17746"/>
+</record_update>
