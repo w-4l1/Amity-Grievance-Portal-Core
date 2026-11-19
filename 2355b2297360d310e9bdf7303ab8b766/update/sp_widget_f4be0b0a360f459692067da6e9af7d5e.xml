@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function () {
+    var c = this;
+
+    // Client-side mirrors of the authoritative server rules. These only drive
+    // inline help-block feedback - the server re-validates everything and the
+    // client is never trusted.
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var PHONE_PATTERN = /^[0-9]{10}$/;
+    var USER_NAME_PATTERN = /^[A-Za-z0-9._]{4,30}$/;
+    var PASSWORD_MIN_LENGTH = 8;
+
+    var FIELDS = [
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'user_name',
+        'password',
+        'confirm_password',
+        'captcha_answer'
+    ];
+
+    c.view = 'form';
+    c.submitting = false;
+    c.serverErrors = [];
+    c.clientErrors = {};
+    c.fieldErrors = {};
+    c.touched = {};
+
+    c.form = emptyForm();
+
+    function emptyForm() {
+        return {
+            first_name: '',
+            last_name: '',
+            email: '',
+            phone: '',
+            user_name: '',
+            password: '',
+            confirm_password: '',
+            captcha_answer: '',
+            // Honeypot - must stay empty for a real visitor.
+            website_url: ''
+        };
+    }
+
+    function value(field) {
+        var raw = c.form[field];
+        if (raw === null || raw === undefined) {
+            return '';
+        }
+        return (raw + '').trim();
+    }
+
+    function checkField(field) {
+        var val = value(field);
+
+        if (field === 'first_name') {
+            return val ? '' : 'First name is required.';
+        }
+        if (field === 'last_name') {
+            return val ? '' : 'Last name is required.';
+        }
+        if (field === 'email') {
+            if (!val) {
+                return 'Email address is required.';
+            }
+            return EMAIL_PATTERN.test(val) ? '' : 'Enter a valid email address.';
+        }
+        if (field === 'phone') {
+            // Optional: only validated when the visitor typed something.
+            if (!val) {
+                return '';
+            }
+            return PHONE_PATTERN.test(val)
+                ? ''
+                : 'Phone number must be exactly 10 digits (0-9), with no spaces or symbols.';
+        }
+        if (field === 'user_name') {
+            if (!val) {
+                return 'Username is required.';
+            }
+            return USER_NAME_PATTERN.test(val)
+                ? ''
+                : 'Username must be 4-30 characters and use only letters, numbers, dots or underscores.';
+        }
+        if (field === 'password') {
+            var pw = (c.form.password || '') + '';
+            if (!pw) {
+                return 'Password is required.';
+            }
+            return pw.length >= PASSWORD_MIN_LENGTH
+                ? ''
+                : 'Password must be at least ' + PASSWORD_MIN_LENGTH + ' characters long.';
+        }
+        if (field === 'confirm_password') {
+            var confirm = (c.form.confirm_password || '') + '';
+            if (!confirm) {
+                return 'Confirm your password.';
+            }
+            return confirm === ((c.form.password || '') + '') ? '' : 'The two passwords do not match.';
+        }
+        if (field === 'captcha_answer') {
+            return val ? '' : 'Answer the verification question.';
+        }
+
+        return '';
+    }
+
+    c.validateField = function (field) {
+        c.touched[field] = true;
+        c.clientErrors[field] = checkField(field);
+        // A server-side message for this field is stale once it is edited.
+        c.fieldErrors[field] = '';
+
+        // Re-check the confirmation whenever the password itself changes.
+        if (field === 'password' && c.touched.confirm_password) {
+            c.clientErrors.confirm_password = checkField('confirm_password');
+        }
+
+        return !c.clientErrors[field];
+    };
+
+    c.validateAll = function () {
+        var valid = true;
+        for (var i = 0; i < FIELDS.length; i++) {
+            if (!c.validateField(FIELDS[i])) {
+                valid = false;
+            }
+        }
+        return valid;
+    };
+
+    c.errorFor = function (field) {
+        return c.clientErrors[field] || c.fieldErrors[field] || '';
+    };
+
+    c.showError = function (field) {
+        if (c.fieldErrors[field]) {
+            return true;
+        }
+        return !!(c.touched[field] && c.clientErrors[field]);
+    };
+
+    c.submit = function () {
+        c.serverErrors = [];
+        c.fieldErrors = {};
+
+        if (!c.validateAll()) {
+            return;
+        }
+
+        c.submitting = true;
+
+        // Fields MUST be assigned onto c.data BEFORE calling c.server.update().
+        // captchaToken / captchaNonce are echoed back exactly as the server
+        // issued them; the expected answer is never known to this controller.
+        c.data.action = 'register';
+        c.data.first_name = c.form.first_name;
+        c.data.last_name = c.form.last_name;
+        c.data.email = c.form.email;
+        c.data.phone = c.form.phone;
+        c.data.user_name = c.form.user_name;
+        c.data.password = c.form.password;
+        c.data.confirm_password = c.form.confirm_password;
+        c.data.website_url = c.form.website_url;
+        c.data.captcha_answer = c.form.captcha_answer;
+
+        c.server.update().then(function () {
+            c.submitting = false;
+            c.data.action = null;
+
+            // Never leave credentials sitting on the shared c.data object.
+            c.data.password = null;
+            c.data.confirm_password = null;
+
+            var result = c.data.registerResult;
+            if (result && result.success) {
+                c.view = 'success';
+                c.form = emptyForm();
+                c.clientErrors = {};
+                c.fieldErrors = {};
+                c.touched = {};
+                return;
+            }
+
+            if (result && result.errors) {
+                c.serverErrors = result.errors;
+                c.fieldErrors = result.fieldErrors || {};
+            } else {
+                c.serverErrors = ['Registration could not be completed. Please try again later.'];
+            }
+
+            // The server issued a fresh challenge with this response, so the old
+            // answer is void - clear it and make the visitor answer the new one.
+            c.form.captcha_answer = '';
+            c.touched.captcha_answer = false;
+            c.clientErrors.captcha_answer = '';
+        });
+    };
+};
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.grievance-registration {
+    .panel-title {
+        font-size: $font-size-large;
+        margin: 0;
+    }
+
+    .grievance-reg-lead {
+        font-size: $font-size-small;
+        margin-bottom: 16px;
+    }
+
+    .grievance-reg-alert-title {
+        margin: 0 0 6px;
+        font-weight: 600;
+    }
+
+    .grievance-reg-error-list {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    /* ----------------------------------------------------------------------
+     * HONEYPOT
+     * Pushed off-screen rather than hidden with display:none / visibility or
+     * type="hidden", so a DOM-reading bot still treats it as a fillable text
+     * input while a sighted or screen-reader user never reaches it (the markup
+     * also sets aria-hidden and tabindex="-1"). Any value arriving here on the
+     * server means the submitter is automated.
+     * -------------------------------------------------------------------- */
+    .grievance-reg-honeypot {
+        position: absolute;
+        left: -10000px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+    }
+
+    /* ---------- Stateless signed math CAPTCHA ---------- */
+    .grievance-reg-captcha {
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border: 1px solid $table-border-color;
+        border-radius: $border-radius-base;
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .grievance-reg-captcha-question {
+            margin: 4px 0 10px;
+            font-family: $font-family-monospace;
+            font-size: $font-size-large;
+            font-weight: 700;
+            color: $text-color;
+        }
+
+        .grievance-reg-captcha-input {
+            max-width: 120px;
+        }
+    }
+
+    /* ---------- Success panel ---------- */
+    .grievance-reg-success {
+        .grievance-reg-success-lead {
+            font-size: $font-size-large;
+            margin-bottom: 16px;
+        }
+
+        .grievance-reg-success-facts {
+            margin-bottom: 12px;
+
+            dt {
+                font-size: $font-size-small;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: $text-muted;
+            }
+
+            dd {
+                margin-bottom: 12px;
+                word-break: break-word;
+            }
+        }
+
+        .grievance-reg-username {
+            font-family: $font-family-monospace;
+            font-size: $font-size-large;
+            font-weight: 700;
+            color: $brand-success;
+        }
+
+        .grievance-reg-success-note {
+            font-size: $font-size-small;
+        }
+
+        .grievance-reg-signin {
+            margin-top: 6px;
+        }
+    }
+
+    .help-block {
+        font-size: $font-size-small;
+    }
+
+    .has-error .help-block {
+        color: $brand-danger;
+    }
+}
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description>Hardened public self-registration form: hidden honeypot field, stateless signed math CAPTCHA, authoritative server-side validation and zero-role sys_user provisioning.</description>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>x_1850267_public_0_citizen_reg</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+}]]></link>
+        <name>Grievance Citizen Registration</name>
+        <option_schema/>
+        <public>true</public>
+        <roles/>
+        <script><![CDATA[(function () {
+    /*
+     * ---------------------------------------------------------------------------
+     * WHY PLAIN GlideRecord (NOT GlideRecordSecure) FOR ALL sys_user ACCESS
+     * ---------------------------------------------------------------------------
+     * This widget is hosted on a PUBLIC Service Portal page, so this server
+     * script executes in the GUEST user session. Guest holds no ACL rights to
+     * read or create sys_user, which means GlideRecordSecure would fail BOTH the
+     * duplicate-check query and the insert, making self-registration impossible.
+     * Plain GlideRecord bypasses ACLs and is therefore deliberately and
+     * necessarily used here - it is what allows zero-role self-registration to
+     * work at all. This is the documented exception in this application: every
+     * other widget uses GlideRecordSecure for grievance data, and this exception
+     * applies ONLY to sys_user and ONLY inside this script.
+     *
+     * The compensating controls for bypassing ACLs are all implemented below:
+     * honeypot rejection, a stateless signed CAPTCHA, and authoritative
+     * server-side validation of every single submitted field. The client is
+     * never trusted.
+     * ---------------------------------------------------------------------------
+     */
+
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var PHONE_PATTERN = /^[0-9]{10}$/;
+    var USER_NAME_PATTERN = /^[A-Za-z0-9._]{4,30}$/;
+    var PASSWORD_MIN_LENGTH = 8;
+
+    var CAPTCHA_MIN = 1;
+    var CAPTCHA_MAX = 15;
+    var NONCE_LENGTH = 32;
+
+    // Deliberately vague - it must never disclose that a honeypot exists.
+    var GENERIC_FAILURE = 'Registration could not be completed. Please try again later.';
+
+    // Initialise every data.* property so the template never binds to undefined.
+    // NOTE: data.password / data.confirm_password are NEVER set - the submitted
+    // password is never echoed back to the browser under any circumstance.
+    data.registerResult = null;
+    data.captchaQuestion = '';
+    data.captchaToken = '';
+    data.captchaNonce = '';
+    data.signInUrl = '/grievance';
+
+    var action = input && input.action ? input.action + '' : '';
+
+    if (action === 'register') {
+        data.registerResult = register(input);
+        if (!data.registerResult.success) {
+            // Every failed attempt gets a brand new challenge, so a token can
+            // never be replayed against a second submission.
+            issueCaptcha();
+        }
+    } else {
+        // Initial widget load.
+        issueCaptcha();
+    }
+
+    // ------------------------------------------------------------------
+    // Registration pipeline
+    // ------------------------------------------------------------------
+    function register(payload) {
+        // 1. HONEYPOT ---------------------------------------------------
+        // website_url is visually hidden via CSS, so a human never fills it.
+        // A bot that parses the DOM will. Reject silently with a generic
+        // message and create nothing - the response must not hint at why.
+        if (trim(payload.website_url)) {
+            return { success: false, errors: [GENERIC_FAILURE] };
+        }
+
+        var firstName = trim(payload.first_name);
+        var lastName = trim(payload.last_name);
+        var email = trim(payload.email);
+        var phone = trim(payload.phone);
+        var userName = trim(payload.user_name);
+        var password = payload.password === null || payload.password === undefined ? '' : payload.password + '';
+        var confirmPassword =
+            payload.confirm_password === null || payload.confirm_password === undefined
+                ? ''
+                : payload.confirm_password + '';
+
+        // 2. AUTHORITATIVE FIELD VALIDATION -----------------------------
+        // The client runs the same rules for inline feedback, but these are the
+        // checks that actually decide the outcome.
+        var errors = [];
+        var fieldErrors = {};
+
+        if (!firstName) {
+            addError(errors, fieldErrors, 'first_name', 'First name is required.');
+        }
+
+        if (!lastName) {
+            addError(errors, fieldErrors, 'last_name', 'Last name is required.');
+        }
+
+        if (!email) {
+            addError(errors, fieldErrors, 'email', 'Email address is required.');
+        } else if (!EMAIL_PATTERN.test(email)) {
+            addError(errors, fieldErrors, 'email', 'Enter a valid email address.');
+        }
+
+        // Phone is optional - only validated when something was actually typed.
+        if (phone && !PHONE_PATTERN.test(phone)) {
+            addError(
+                errors,
+                fieldErrors,
+                'phone',
+                'Phone number must be exactly 10 digits (0-9), with no spaces or symbols.'
+            );
+        }
+
+        if (!userName) {
+            addError(errors, fieldErrors, 'user_name', 'Username is required.');
+        } else if (!USER_NAME_PATTERN.test(userName)) {
+            addError(
+                errors,
+                fieldErrors,
+                'user_name',
+                'Username must be 4-30 characters and use only letters, numbers, dots or underscores.'
+            );
+        }
+
+        if (!password) {
+            addError(errors, fieldErrors, 'password', 'Password is required.');
+        } else if (password.length < PASSWORD_MIN_LENGTH) {
+            addError(
+                errors,
+                fieldErrors,
+                'password',
+                'Password must be at least ' + PASSWORD_MIN_LENGTH + ' characters long.'
+            );
+        }
+
+        if (!confirmPassword) {
+            addError(errors, fieldErrors, 'confirm_password', 'Confirm your password.');
+        } else if (password && password !== confirmPassword) {
+            addError(errors, fieldErrors, 'confirm_password', 'The two passwords do not match.');
+        }
+
+        // 3. STATELESS SIGNED CAPTCHA -----------------------------------
+        var captchaCheck = verifyCaptcha(payload);
+        if (!captchaCheck.valid) {
+            addError(errors, fieldErrors, 'captcha_answer', captchaCheck.message);
+        }
+
+        if (errors.length > 0) {
+            return { success: false, errors: errors, fieldErrors: fieldErrors };
+        }
+
+        // 4. DUPLICATE CHECKS (plain GlideRecord - see header comment) ---
+        if (userNameTaken(userName)) {
+            return {
+                success: false,
+                errors: ['That username is already taken. Choose a different username.'],
+                fieldErrors: { user_name: 'That username is already taken.' },
+            };
+        }
+
+        if (emailTaken(email)) {
+            return {
+                success: false,
+                errors: ['An account already exists for that email address.'],
+                fieldErrors: { email: 'An account already exists for that email address.' },
+            };
+        }
+
+        // 5. ZERO-ROLE PROVISIONING -------------------------------------
+        return createUser({
+            userName: userName,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone,
+            password: password,
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // sys_user access - plain GlideRecord only (see header comment)
+    // ------------------------------------------------------------------
+    function userNameTaken(userName) {
+        var gr = new GlideRecord('sys_user');
+        gr.addQuery('user_name', userName);
+        gr.setLimit(1);
+        gr.query();
+        return gr.hasNext();
+    }
+
+    function emailTaken(email) {
+        var gr = new GlideRecord('sys_user');
+        gr.addQuery('email', email);
+        gr.setLimit(1);
+        gr.query();
+        return gr.hasNext();
+    }
+
+    function createUser(profile) {
+        // Plain GlideRecord: the guest session has no create ACL on sys_user.
+        var userGr = new GlideRecord('sys_user');
+        userGr.initialize();
+        userGr.setValue('user_name', profile.userName);
+        userGr.setValue('first_name', profile.firstName.substring(0, 50));
+        userGr.setValue('last_name', profile.lastName.substring(0, 50));
+        userGr.setValue('email', profile.email);
+
+        // Phone is optional - only written when the citizen supplied one.
+        if (profile.phone) {
+            userGr.setValue('phone', profile.phone);
+        }
+
+        userGr.setValue('active', true);
+        userGr.setValue('locked_out', false);
+        userGr.setValue('password_needs_reset', false);
+        userGr.setValue('web_service_access_only', false);
+
+        // setDisplayValue on the password field makes the platform salt and hash
+        // the value ($s$<salt>$<hash>). setValue would store it verbatim and MUST
+        // NOT be used here.
+        userGr.user_password.setDisplayValue(profile.password);
+
+        /*
+         * ZERO ROLES, NO EXCEPTIONS.
+         * No sys_user_has_role record is ever inserted and the `roles` field is
+         * never set. A self-registered citizen is provisioned with absolutely no
+         * roles - any entitlement must be granted later by an administrator
+         * through the normal, audited process. Adding a role here would let an
+         * anonymous internet visitor grant themselves platform privileges.
+         */
+
+        var sysId = userGr.insert();
+        if (!sysId) {
+            return { success: false, errors: ['Your account could not be created. Please try again later.'] };
+        }
+
+        // Nothing password-related is returned to the client.
+        return {
+            success: true,
+            user_name: profile.userName,
+            full_name: profile.firstName + ' ' + profile.lastName,
+            email: profile.email,
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // Stateless signed math CAPTCHA
+    // ------------------------------------------------------------------
+    /**
+     * Builds a fresh challenge. The expected answer NEVER leaves the server:
+     * only the human-readable question, the random nonce and the HMAC-style
+     * hash of answer+nonce are published to the client. Because the signature
+     * carries the state, no session storage is needed - hence "stateless".
+     */
+    function issueCaptcha() {
+        var left = randomInt(CAPTCHA_MIN, CAPTCHA_MAX);
+        var right = randomInt(CAPTCHA_MIN, CAPTCHA_MAX);
+        var expectedAnswer = left + right + '';
+        var nonce = randomNonce(NONCE_LENGTH);
+
+        data.captchaQuestion = 'What is ' + left + ' + ' + right + '?';
+        data.captchaNonce = nonce;
+        data.captchaToken = signAnswer(expectedAnswer, nonce);
+    }
+
+    /**
+     * Recomputes the signature from the submitted answer plus the nonce that
+     * came back with it, then compares it to the submitted token. A correct
+     * answer reproduces the signature; anything else cannot, because the
+     * visitor never sees the expected answer.
+     */
+    function verifyCaptcha(payload) {
+        var nonce = trim(payload.captchaNonce);
+        var token = trim(payload.captchaToken);
+        var answer = trim(payload.captcha_answer);
+
+        if (!nonce || !token) {
+            return {
+                valid: false,
+                message: 'Your verification challenge expired. Answer the new question below and resubmit.',
+            };
+        }
+
+        if (!answer) {
+            return { valid: false, message: 'Answer the verification question.' };
+        }
+
+        var computed = signAnswer(answer, nonce);
+
+        // Both sides come from the same hash function, but compare
+        // case-insensitively defensively.
+        if (computed.toUpperCase() !== token.toUpperCase()) {
+            return {
+                valid: false,
+                message: 'That is not the correct answer to the verification question. Try the new question below.',
+            };
+        }
+
+        return { valid: true, message: '' };
+    }
+
+    function signAnswer(answer, nonce) {
+        // GrievanceHashEngine is server-side only and returns an uppercase
+        // 64-character SHA-256 hex digest.
+        return (new GrievanceHashEngine().generateHash(answer + '|' + nonce) || '') + '';
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+    function randomInt(min, max) {
+        var span = max - min + 1;
+        var value = -1;
+
+        try {
+            value = parseInt(GlideSecureRandomUtil.getSecureRandomIntBound(span), 10);
+        } catch (e) {
+            value = -1;
+        }
+
+        if (isNaN(value) || value < 0 || value >= span) {
+            value = Math.floor(Math.random() * span);
+        }
+
+        return min + value;
+    }
+
+    function randomNonce(length) {
+        try {
+            var secure = GlideSecureRandomUtil.getSecureRandomString(length);
+            if (secure) {
+                return (secure + '').substring(0, length);
+            }
+        } catch (e) {
+            // fall through to the hash-derived nonce below
+        }
+
+        var seed = new GlideDateTime().getNumericValue() + '|' + Math.random() + '|' + Math.random();
+        return signAnswer(seed, 'nonce-seed').substring(0, length);
+    }
+
+    function addError(errors, fieldErrors, field, message) {
+        errors.push(message);
+        if (!fieldErrors[field]) {
+            fieldErrors[field] = message;
+        }
+    }
+
+    function trim(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return (value + '').trim();
+    }
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-19 14:38:31</sys_created_on>
+        <sys_id>f4be0b0a360f459692067da6e9af7d5e</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Grievance Citizen Registration</sys_name>
+        <sys_package display_value="Public Grievance Redressal" source="x_1850267_public_0">2355b2297360d310e9bdf7303ab8b766</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Public Grievance Redressal">2355b2297360d310e9bdf7303ab8b766</sys_scope>
+        <sys_update_name>sp_widget_f4be0b0a360f459692067da6e9af7d5e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-19 14:38:31</sys_updated_on>
+        <template><![CDATA[<div class="grievance-registration">
+
+  <!-- ========================== REGISTRATION FORM ========================== -->
+  <div class="panel panel-default" ng-if="c.view === 'form'">
+    <div class="panel-heading">
+      <h2 class="panel-title">Create a Citizen Account</h2>
+    </div>
+    <div class="panel-body">
+
+      <p class="text-muted grievance-reg-lead">
+        Register to file and track grievances. All fields marked
+        <span class="text-danger">*</span> are required.
+      </p>
+
+      <div class="alert alert-danger" ng-if="c.serverErrors.length">
+        <p class="grievance-reg-alert-title">
+          <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Your account was not created:
+        </p>
+        <ul class="grievance-reg-error-list">
+          <li ng-repeat="err in c.serverErrors track by $index">{{err}}</li>
+        </ul>
+      </div>
+
+      <form name="regForm" ng-submit="c.submit()" novalidate autocomplete="off">
+
+        <div class="row">
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('first_name')}">
+              <label for="reg-first-name">First name <span class="text-danger">*</span></label>
+              <input type="text" id="reg-first-name" name="first_name" class="form-control"
+                     maxlength="50" ng-model="c.form.first_name"
+                     ng-change="c.validateField('first_name')" ng-blur="c.validateField('first_name')" required />
+              <span class="help-block" ng-if="c.showError('first_name')">{{c.errorFor('first_name')}}</span>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('last_name')}">
+              <label for="reg-last-name">Last name <span class="text-danger">*</span></label>
+              <input type="text" id="reg-last-name" name="last_name" class="form-control"
+                     maxlength="50" ng-model="c.form.last_name"
+                     ng-change="c.validateField('last_name')" ng-blur="c.validateField('last_name')" required />
+              <span class="help-block" ng-if="c.showError('last_name')">{{c.errorFor('last_name')}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('email')}">
+              <label for="reg-email">Email address <span class="text-danger">*</span></label>
+              <input type="email" id="reg-email" name="email" class="form-control"
+                     maxlength="100" ng-model="c.form.email"
+                     ng-change="c.validateField('email')" ng-blur="c.validateField('email')" required />
+              <span class="help-block" ng-if="c.showError('email')">{{c.errorFor('email')}}</span>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('phone')}">
+              <label for="reg-phone">Mobile number <span class="text-muted">(optional)</span></label>
+              <input type="tel" id="reg-phone" name="phone" class="form-control"
+                     maxlength="10" placeholder="10 digits" ng-model="c.form.phone"
+                     ng-change="c.validateField('phone')" ng-blur="c.validateField('phone')" />
+              <span class="help-block" ng-if="c.showError('phone')">{{c.errorFor('phone')}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" ng-class="{'has-error': c.showError('user_name')}">
+          <label for="reg-user-name">Username <span class="text-danger">*</span></label>
+          <input type="text" id="reg-user-name" name="user_name" class="form-control"
+                 maxlength="30" placeholder="4-30 characters: letters, numbers, dot or underscore"
+                 ng-model="c.form.user_name" ng-change="c.validateField('user_name')"
+                 ng-blur="c.validateField('user_name')" required />
+          <span class="help-block" ng-if="c.showError('user_name')">{{c.errorFor('user_name')}}</span>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('password')}">
+              <label for="reg-password">Password <span class="text-danger">*</span></label>
+              <input type="password" id="reg-password" name="password" class="form-control"
+                     maxlength="100" autocomplete="new-password" ng-model="c.form.password"
+                     ng-change="c.validateField('password')" ng-blur="c.validateField('password')" required />
+              <span class="help-block" ng-if="c.showError('password')">{{c.errorFor('password')}}</span>
+              <span class="help-block text-muted" ng-if="!c.showError('password')">
+                At least 8 characters.
+              </span>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-sm-12 col-xs-12">
+            <div class="form-group" ng-class="{'has-error': c.showError('confirm_password')}">
+              <label for="reg-confirm-password">Confirm password <span class="text-danger">*</span></label>
+              <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control"
+                     maxlength="100" autocomplete="new-password" ng-model="c.form.confirm_password"
+                     ng-change="c.validateField('confirm_password')" ng-blur="c.validateField('confirm_password')" required />
+              <span class="help-block" ng-if="c.showError('confirm_password')">{{c.errorFor('confirm_password')}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!--
+          HONEYPOT. Visually hidden with the .grievance-reg-honeypot class (an
+          off-screen class in this widget's CSS - NOT an inline style attribute
+          and NOT type="hidden"), so automated scripts that read the DOM still
+          see a normal text input and fill it in. A human never does. The server
+          rejects any submission where this arrives non-empty.
+        -->
+        <div class="form-group grievance-reg-honeypot" aria-hidden="true">
+          <label for="reg-website-url">Website</label>
+          <input type="text" id="reg-website-url" name="website_url" class="form-control"
+                 tabindex="-1" autocomplete="off" ng-model="c.form.website_url" />
+        </div>
+
+        <div class="grievance-reg-captcha">
+          <div class="form-group" ng-class="{'has-error': c.showError('captcha_answer')}">
+            <label for="reg-captcha">
+              Verification <span class="text-danger">*</span>
+            </label>
+            <p class="grievance-reg-captcha-question" ng-bind="c.data.captchaQuestion"></p>
+            <input type="text" id="reg-captcha" name="captcha_answer" class="form-control grievance-reg-captcha-input"
+                   maxlength="4" inputmode="numeric" autocomplete="off"
+                   ng-model="c.form.captcha_answer" ng-change="c.validateField('captcha_answer')"
+                   ng-blur="c.validateField('captcha_answer')" required />
+            <span class="help-block" ng-if="c.showError('captcha_answer')">{{c.errorFor('captcha_answer')}}</span>
+            <span class="help-block text-muted" ng-if="!c.showError('captcha_answer')">
+              Answer the arithmetic question above to prove you are not an automated script.
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" ng-disabled="c.submitting">
+          <span ng-if="c.submitting"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Creating account</span>
+          <span ng-if="!c.submitting"><i class="fa fa-user-plus" aria-hidden="true"></i> Create account</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ============================ SUCCESS PANEL ============================ -->
+  <div class="panel panel-success grievance-reg-success"
+       ng-if="c.view === 'success' &amp;&amp; c.data.registerResult.success">
+    <div class="panel-heading">
+      <h2 class="panel-title">
+        <i class="fa fa-check-circle" aria-hidden="true"></i> Account Created
+      </h2>
+    </div>
+    <div class="panel-body">
+      <p class="grievance-reg-success-lead">
+        Welcome, <strong ng-bind="c.data.registerResult.full_name"></strong>. Your citizen
+        account is active and ready to use.
+      </p>
+
+      <dl class="grievance-reg-success-facts">
+        <dt>Your username</dt>
+        <dd class="grievance-reg-username" ng-bind="c.data.registerResult.user_name"></dd>
+
+        <dt>Email address</dt>
+        <dd ng-bind="c.data.registerResult.email"></dd>
+      </dl>
+
+      <p class="text-muted grievance-reg-success-note">
+        Sign in with the username above and the password you just chose to file and track grievances.
+      </p>
+
+      <a class="btn btn-primary btn-lg grievance-reg-signin" ng-href="{{c.data.signInUrl}}">
+        <i class="fa fa-sign-in" aria-hidden="true"></i> Sign In to Citizen Portal
+      </a>
+    </div>
+  </div>
+
+</div>
+]]></template>
+    </sp_widget>
+</record_update>

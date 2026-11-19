@@ -281,6 +281,10 @@
 
     var HASH_PREVIEW_LENGTH = 12;
 
+    // Anti-spam: at most 5 grievances per citizen per rolling 24 hours.
+    var RATE_LIMIT_MAX = 5;
+    var RATE_LIMIT_SECONDS = 86400;
+
     // Initialise every data.* property so the template never binds to undefined
     data.categories = CATEGORY_CHOICES;
     data.grievances = [];
@@ -344,6 +348,21 @@
 
         if (errors.length > 0) {
             return { success: false, errors: errors };
+        }
+
+        // Anti-spam rate limit: block a 6th submission inside a rolling 24h window.
+        // Checked after field validation so a spammer gets the same feedback order
+        // as a legitimate user, and before insert so nothing is written.
+        if (isRateLimited()) {
+            return {
+                success: false,
+                rateLimited: true,
+                errors: [
+                    'Rate limit reached: you may submit at most ' +
+                        RATE_LIMIT_MAX +
+                        ' grievances within a 24-hour period.'
+                ]
+            };
         }
 
         var gr = new GlideRecordSecure(TABLE);
@@ -428,6 +447,36 @@
         }
 
         return rows;
+    }
+
+    // ------------------------------------------------------------------
+    // Anti-spam rate limiting
+    // ------------------------------------------------------------------
+    /**
+     * True when the current user has already opened RATE_LIMIT_MAX or more
+     * grievances in the trailing 24 hours.
+     *
+     * Uses new GlideDateTime() (scoped-safe) rather than gs.nowDateTime(), and
+     * counts with GlideAggregate so no rows are fetched just to be tallied.
+     * The window is rolling (now minus 24h), not a calendar day, so a citizen
+     * cannot reset their quota at midnight.
+     */
+    function isRateLimited() {
+        var cutoff = new GlideDateTime();
+        cutoff.addSeconds(-RATE_LIMIT_SECONDS);
+
+        var ga = new GlideAggregate(TABLE);
+        ga.addQuery('opened_by', gs.getUserID());
+        ga.addQuery('sys_created_on', '>=', cutoff.getValue());
+        ga.addAggregate('COUNT');
+        ga.query();
+
+        var recentCount = 0;
+        if (ga.next()) {
+            recentCount = parseInt(ga.getAggregate('COUNT'), 10) || 0;
+        }
+
+        return recentCount >= RATE_LIMIT_MAX;
     }
 
     // ------------------------------------------------------------------
