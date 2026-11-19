@@ -3,7 +3,7 @@
         <category>custom</category>
         <css/>
         <draft>false</draft>
-        <dynamic_title_structure/>
+        <dynamic_title_structure>Public Grievance Portal</dynamic_title_structure>
         <human_readable_url_structure/>
         <id>grievance_home</id>
         <internal>false</internal>
@@ -11,7 +11,7 @@
         <public>false</public>
         <roles/>
         <seo_script/>
-        <short_description/>
+        <short_description>Citizen landing page for filing and tracking grievances.</short_description>
         <sys_class_name>sp_page</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-11-14 11:35:19</sys_created_on>
