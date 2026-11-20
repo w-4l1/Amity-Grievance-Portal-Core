@@ -4,13 +4,13 @@
             <element>.begin_split</element>
             <position>0</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>1a3f7e882d074ea68c3544a1612bd8f6</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>796c186b736cdf10e9bdf7303ab8b7a8</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type>.begin_split</type>
         </sys_ui_element>
@@ -18,13 +18,13 @@
             <element>number</element>
             <position>1</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>1758c7f7a93145099fec3c3bb9a6b43c</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>b16c186b736cdf10e9bdf7303ab8b7aa</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -32,13 +32,13 @@
             <element>citizen_name</element>
             <position>2</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>bdf8538781cd4c4499c93fd53a8a0b4f</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>316c186b736cdf10e9bdf7303ab8b7ab</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -46,13 +46,13 @@
             <element>citizen_phone</element>
             <position>3</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>8c4e03210326495b925fdd9e4245d347</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>bd6c186b736cdf10e9bdf7303ab8b7ab</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -60,13 +60,13 @@
             <element>.split</element>
             <position>4</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>efa201704cdd48d2a3f100422f5bdf18</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>3d6c186b736cdf10e9bdf7303ab8b7ac</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type>.split</type>
         </sys_ui_element>
@@ -74,13 +74,13 @@
             <element>grievance_category</element>
             <position>5</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>f952abab79e346f999ac2f585a7a017a</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>b96c186b736cdf10e9bdf7303ab8b7ad</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -88,13 +88,13 @@
             <element>state</element>
             <position>6</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>c44e92fe7e924758bba31eb6d8cf0aed</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>396c186b736cdf10e9bdf7303ab8b7ae</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -102,13 +102,13 @@
             <element>cryptographic_hash</element>
             <position>7</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>826b6a74833749b6aaa5ac98638e26b5</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>b56c186b736cdf10e9bdf7303ab8b7af</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -116,13 +116,13 @@
             <element>.end_split</element>
             <position>8</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>720947f7285a424eb4d182fabaa2eea5</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>356c186b736cdf10e9bdf7303ab8b7b0</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type>.end_split</type>
         </sys_ui_element>
@@ -130,13 +130,13 @@
             <element>short_description</element>
             <position>9</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>abae5823d5864055a6a3a8a64950a0dc</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>b16c186b736cdf10e9bdf7303ab8b7b1</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
@@ -144,13 +144,27 @@
             <element>description</element>
             <position>10</position>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2026-11-14 11:07:40</sys_created_on>
-            <sys_id>4fd0bf53886644acb72c44ef4b0d0cf1</sys_id>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>316c186b736cdf10e9bdf7303ab8b7b2</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_ui_formatter/>
             <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2026-11-14 11:07:40</sys_updated_on>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>close_notes</element>
+            <position>11</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-20 04:57:41</sys_created_on>
+            <sys_id>bd6c186b736cdf10e9bdf7303ab8b7b2</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="Grievance Ticket" display_value="Grievance Ticket" name="x_1850267_public_0_grievance" sys_domain="global" view="Default view">1e21c89974e0478da53964242ade163b</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-20 04:57:41</sys_updated_on>
             <sys_user/>
             <type/>
         </sys_ui_element>
